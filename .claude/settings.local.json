@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs:/c/Users/anind/AppData/Roaming/npm:/c/ProgramData/nvm:/c/Users/anind/AppData/Roaming/nvm\")",
+      "Bash(where.exe node:*)",
+      "Read(//c/Program Files/nodejs/**)",
+      "Read(//c/Users/anind/AppData/Local/Programs/nodejs/**)",
+      "Bash(cmd.exe /c \"where node\")",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(npx create-expo-app@latest . --template blank-typescript)",
+      "Read(//c/Users/anind/OneDrive/Desktop/Cl_Workspace/**)",
+      "Bash(npx create-expo-app@latest ductivity_temp --template blank-typescript)",
+      "Bash(cp -r ductivity_temp/* ductivity_app/)",
+      "Bash(cp ductivity_temp/.gitignore ductivity_app/)",
+      "Bash(cp ductivity_temp/tsconfig.json ductivity_app/)",
+      "Bash(rm -rf ductivity_temp)",
+      "Bash(npx create-expo-app@latest ductivity_temp2 --template blank-typescript)",
+      "Bash(cp ductivity_temp2/package.json ductivity_app/)",
+      "Bash(cp ductivity_temp2/package-lock.json ductivity_app/)",
+      "Bash(cp ductivity_temp2/tsconfig.json ductivity_app/)",
+      "Bash(cp ductivity_temp2/.gitignore ductivity_app/)",
+      "Bash(rm -rf ductivity_temp2)",
+      "Bash(npm install:*)",
+      "Bash(cmd.exe /c \"rmdir /s /q node_modules\")",
+      "Bash(npx tsc:*)",
+      "Bash(firebase login:*)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:/c/Users/anind/AppData/Roaming/npm:$PATH\")",
+      "Bash(firebase login:ci --no-localhost)",
+      "Bash(npx expo:*)",
+      "Bash(eas whoami:*)",
+      "Bash(eas build:*)"
+    ]
+  }
+}

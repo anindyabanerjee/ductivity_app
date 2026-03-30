@@ -1,3 +1,11 @@
+/**
+ * components/SkeletonLoader.tsx
+ *
+ * A pulsing placeholder rectangle used while data is loading.
+ * Renders a dark rounded box whose opacity oscillates between
+ * 0.3 and 0.7, giving the classic "shimmer" loading effect.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, ViewStyle } from 'react-native';
 
@@ -11,6 +19,7 @@ interface Props {
 export default function SkeletonLoader({ width, height, borderRadius = 12, style }: Props) {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
+  // Start an infinite pulse loop on mount
   useEffect(() => {
     Animated.loop(
       Animated.sequence([

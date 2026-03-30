@@ -1,11 +1,27 @@
+/**
+ * services/notificationService.ts
+ *
+ * Manages local push notifications for activity reminders.
+ * Notifications are disabled entirely when running inside Expo Go
+ * (push notifications require a development build).
+ *
+ * Key functions:
+ *  - registerForPushNotifications() -- request OS permission + create Android channel
+ *  - scheduleActivityReminder()     -- batch-schedule reminders for the next 12 hours
+ *  - sendTestNotification()         -- fire a one-off test notification after 2 seconds
+ *  - cancelAllReminders()           -- remove every pending notification
+ */
+
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getSettings, getFrequencySeconds, isInTimeRange, parseTime } from './settingsService';
 
+/** True when running inside the Expo Go client (no native module access). */
 const isExpoGo = Constants.appOwnership === 'expo';
 
+// Configure the foreground notification handler (only in dev builds)
 if (!isExpoGo) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -18,6 +34,11 @@ if (!isExpoGo) {
   });
 }
 
+/**
+ * Request notification permissions from the OS.
+ * On Android, also creates a high-importance notification channel.
+ * Returns true if permission was granted, false otherwise.
+ */
 export async function registerForPushNotifications(): Promise<boolean> {
   if (isExpoGo) {
     console.log('Push notifications not available in Expo Go.');
@@ -42,6 +63,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
     return false;
   }
 
+  // Android requires an explicit notification channel
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('activity-reminder', {
       name: 'Activity Reminder',
@@ -54,9 +76,14 @@ export async function registerForPushNotifications(): Promise<boolean> {
   return true;
 }
 
+/**
+ * Determine whether a given Date falls inside a blocked window
+ * (sleep mode or do-not-disturb). Handles overnight ranges correctly.
+ */
 function isTimeBlocked(date: Date, settings: { sleepModeEnabled: boolean; sleepStart: string; sleepEnd: string; dndEnabled: boolean; dndStart: string; dndEnd: string }): boolean {
   const minutes = date.getHours() * 60 + date.getMinutes();
 
+  // Check sleep mode window
   if (settings.sleepModeEnabled) {
     const sleepS = parseTime(settings.sleepStart);
     const sleepE = parseTime(settings.sleepEnd);
@@ -70,6 +97,7 @@ function isTimeBlocked(date: Date, settings: { sleepModeEnabled: boolean; sleepS
     }
   }
 
+  // Check DND window
   if (settings.dndEnabled) {
     const dndS = parseTime(settings.dndStart);
     const dndE = parseTime(settings.dndEnd);
@@ -86,6 +114,11 @@ function isTimeBlocked(date: Date, settings: { sleepModeEnabled: boolean; sleepS
   return false;
 }
 
+/**
+ * Cancel all existing reminders, then batch-schedule new ones for the
+ * next 12 hours based on the user's chosen frequency. Notifications
+ * that would land in a sleep or DND window are skipped.
+ */
 export async function scheduleActivityReminder(): Promise<void> {
   if (isExpoGo) return;
 
@@ -124,6 +157,7 @@ export async function scheduleActivityReminder(): Promise<void> {
   console.log(`Scheduled ${scheduled} notifications (frequency: ${settings.notificationFrequency})`);
 }
 
+/** Fire a quick test notification 2 seconds from now to verify setup. */
 export async function sendTestNotification(): Promise<void> {
   if (isExpoGo) return;
 
@@ -141,6 +175,7 @@ export async function sendTestNotification(): Promise<void> {
   });
 }
 
+/** Cancel every pending scheduled notification. */
 export async function cancelAllReminders(): Promise<void> {
   if (isExpoGo) return;
   await Notifications.cancelAllScheduledNotificationsAsync();

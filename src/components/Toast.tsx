@@ -1,3 +1,11 @@
+/**
+ * components/Toast.tsx
+ *
+ * A top-of-screen toast notification that slides down to confirm an
+ * activity was logged, then auto-dismisses after 2.5 seconds.
+ * Colour-coded by the activity's category.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { CATEGORY_COLORS, CategoryType } from '../types';
@@ -10,6 +18,7 @@ interface ToastProps {
   activityName: string;
   category: CategoryType;
   time: string;
+  /** Called once the exit animation completes so the parent can unmount the toast. */
   onHide: () => void;
 }
 
@@ -18,9 +27,10 @@ export default function Toast({ visible, emoji, activityName, category, time, on
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
 
+  // Animate in when visible becomes true, then auto-hide after 2.5 seconds
   useEffect(() => {
     if (visible) {
-      // Slide in from top
+      // Slide in from top with spring physics
       Animated.parallel([
         Animated.spring(translateY, { toValue: 0, damping: 14, stiffness: 120, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),

@@ -1,3 +1,12 @@
+/**
+ * screens/TaskScreen.tsx
+ *
+ * Main activity-logging screen. Displays a grid of activity cards the
+ * user can tap to log what they are currently doing. A notification
+ * reminder banner pulses in when a scheduled notification fires, and
+ * a Toast confirms each successful log.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -11,11 +20,12 @@ import { ACTIVITIES } from '../config/activities';
 import { logActivity } from '../services/activityService';
 import { CATEGORY_COLORS, CategoryType } from '../types';
 import { useUser } from '../context/UserContext';
-import { useNotificationTrigger } from '../../App';
-import { AnimatedButton, useFadeInUp, FadeInCard } from '../utils/animations';
+import { AnimatedButton, useFadeInUp } from '../utils/animations';
 import { hapticSuccess, hapticMedium } from '../utils/haptics';
 import Toast from '../components/Toast';
+import { useNotificationTrigger } from '../../App';
 
+/** Data passed to the Toast component when an activity is logged. */
 interface ToastData {
   emoji: string;
   activityName: string;
@@ -34,9 +44,9 @@ export default function TaskScreen() {
   const { notificationTrigger } = useNotificationTrigger();
   const reminderPulse = useRef(new Animated.Value(1)).current;
 
+  // Staggered header entrance animations (run once on mount)
   const header = useFadeInUp(0);
   const subheader = useFadeInUp(100);
-  const lastLoggedAnim = useFadeInUp(0);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
@@ -49,12 +59,11 @@ export default function TaskScreen() {
     }
   }, []);
 
-  // Show reminder banner when notification arrives
+  // Show a pulsing reminder banner when a push notification arrives
   useEffect(() => {
     if (notificationTrigger > 0) {
       setShowReminder(true);
       hapticMedium();
-      // Pulse animation
       Animated.loop(
         Animated.sequence([
           Animated.timing(reminderPulse, { toValue: 1.02, duration: 600, useNativeDriver: true }),
@@ -65,18 +74,17 @@ export default function TaskScreen() {
     }
   }, [notificationTrigger]);
 
+  /** Log the tapped activity to Firestore and show a confirmation toast. */
   const handleActivityPress = async (activity: typeof ACTIVITIES[0]) => {
-    if (loading) return;
+    if (loading) return; // Prevent double-tap
     setLoading(true);
     setLoadingId(activity.id);
     try {
       await logActivity(activity.name, activity.category);
       setLastLogged(activity.name);
-      setShowReminder(false);
+      setShowReminder(false); // Dismiss reminder once the user responds
       hapticSuccess();
-      lastLoggedAnim.animate();
 
-      // Show custom toast
       setToast({
         emoji: activity.emoji,
         activityName: activity.name,
@@ -128,9 +136,10 @@ export default function TaskScreen() {
       <Animated.View style={subheader.style}>
         <Text style={styles.subheader}>Tap to log your current activity</Text>
       </Animated.View>
+
       <View style={styles.grid}>
-        {ACTIVITIES.map((activity, index) => (
-          <FadeInCard key={activity.id} delay={150 + index * 60} style={styles.cardWrapper}>
+        {ACTIVITIES.map((activity) => (
+          <View key={activity.id} style={styles.cardWrapper}>
             <AnimatedButton
               style={[
                 styles.activityCard,
@@ -153,13 +162,12 @@ export default function TaskScreen() {
                 </View>
               )}
             </AnimatedButton>
-          </FadeInCard>
+          </View>
         ))}
       </View>
+
       {lastLogged && (
-        <Animated.View style={lastLoggedAnim.style}>
-          <Text style={styles.lastLoggedText}>Last logged: {lastLogged}</Text>
-        </Animated.View>
+        <Text style={styles.lastLoggedText}>Last logged: {lastLogged}</Text>
       )}
     </View>
   );

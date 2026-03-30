@@ -1,3 +1,14 @@
+/**
+ * services/activityService.ts
+ *
+ * Handles all Firestore CRUD operations for activity logs.
+ * - logActivity()   writes a new log document
+ * - getActivities() reads logs filtered by a TimeFilter range
+ *
+ * Currently uses a hard-coded single-user ID; swap USER_ID for a
+ * real auth uid if multi-user support is added later.
+ */
+
 import {
   collection,
   addDoc,
@@ -10,9 +21,13 @@ import {
 import { db } from '../config/firebase';
 import { ActivityLog, CategoryType, TimeFilter } from '../types';
 
+/** Firestore collection that stores activity log documents. */
 const COLLECTION_NAME = 'activities';
+
+/** Hard-coded user identifier (single-user app for now). */
 const USER_ID = 'default_user'; // Simple single-user setup
 
+/** Write a new activity log to Firestore with a server-side timestamp. */
 export async function logActivity(activityName: string, category: CategoryType): Promise<void> {
   await addDoc(collection(db, COLLECTION_NAME), {
     userId: USER_ID,
@@ -22,6 +37,10 @@ export async function logActivity(activityName: string, category: CategoryType):
   });
 }
 
+/**
+ * Convert a TimeFilter into the earliest Date that should be included.
+ * For example '3h' returns a Date 3 hours ago; 'daily' returns midnight today.
+ */
 function getFilterStartDate(filter: TimeFilter): Date {
   const now = new Date();
   switch (filter) {
@@ -44,6 +63,10 @@ function getFilterStartDate(filter: TimeFilter): Date {
   }
 }
 
+/**
+ * Fetch activity logs for the current user within the given time range,
+ * ordered newest-first. Firestore Timestamps are converted to JS Dates.
+ */
 export async function getActivities(filter: TimeFilter): Promise<ActivityLog[]> {
   const startDate = getFilterStartDate(filter);
   const q = query(

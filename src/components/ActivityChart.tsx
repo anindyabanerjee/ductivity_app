@@ -1,10 +1,21 @@
+/**
+ * components/ActivityChart.tsx
+ *
+ * Displays productivity data in one of four visualisations selected by
+ * the user on the Dashboard: pie chart, bar chart, timeline, or
+ * progress bars. Also shows a "Productivity Score" card above the
+ * chart and an animated empty-state when no data exists.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { ActivityLog, CategoryType, CATEGORY_COLORS, CATEGORY_LABELS } from '../types';
 
+/** Available chart width after accounting for horizontal padding. */
 const screenWidth = Dimensions.get('window').width - 40;
 
+/** The four visualisation modes the Dashboard can switch between. */
 export type ChartType = 'pie' | 'bar' | 'timeline' | 'progress';
 
 interface Props {
@@ -13,12 +24,16 @@ interface Props {
 }
 
 export default function ActivityChart({ logs, chartType }: Props) {
+  // Animated values for the score card entrance
   const scoreOpacity = useRef(new Animated.Value(0)).current;
   const scoreScale = useRef(new Animated.Value(0.9)).current;
+  // Animated values for the chart entrance (slightly delayed)
   const chartOpacity = useRef(new Animated.Value(0)).current;
   const chartY = useRef(new Animated.Value(20)).current;
+  // Gentle bobbing animation for the empty-state emoji
   const emptyBob = useRef(new Animated.Value(0)).current;
 
+  // Re-run entrance animations whenever the data or chart type changes
   useEffect(() => {
     scoreOpacity.setValue(0);
     scoreScale.setValue(0.9);
@@ -33,6 +48,7 @@ export default function ActivityChart({ logs, chartType }: Props) {
     ]).start();
   }, [logs, chartType]);
 
+  // Start a bobbing loop when there is no data to display
   useEffect(() => {
     if (logs.length === 0) {
       Animated.loop(
@@ -54,22 +70,27 @@ export default function ActivityChart({ logs, chartType }: Props) {
     );
   }
 
+  // Aggregate log counts by category (for pie / progress charts)
   const categoryCounts = logs.reduce((acc, log) => {
     acc[log.category] = (acc[log.category] || 0) + 1;
     return acc;
   }, {} as Record<CategoryType, number>);
 
+  // Aggregate log counts by individual activity name (for bar chart)
   const activityCounts = logs.reduce((acc, log) => {
     acc[log.activity] = (acc[log.activity] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
+  // Compute the headline productivity score shown in the score card
   const totalLogs = logs.length;
   const productiveCount = logs.filter(l => l.category === 'productive').length;
   const productivePercent = Math.round((productiveCount / totalLogs) * 100);
 
+  // Top 6 activities by frequency, used by the bar chart
   const sortedActivities = Object.entries(activityCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
 
+  /** Shared configuration object for react-native-chart-kit charts. */
   const chartConfig = {
     backgroundColor: '#16213e',
     backgroundGradientFrom: '#16213e',
@@ -81,6 +102,7 @@ export default function ActivityChart({ logs, chartType }: Props) {
     propsForBackgroundLines: { stroke: 'rgba(255,255,255,0.05)' },
   };
 
+  /** Render the currently selected chart type. */
   const renderChart = () => {
     switch (chartType) {
       case 'pie': {

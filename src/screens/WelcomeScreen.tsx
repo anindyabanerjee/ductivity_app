@@ -1,3 +1,13 @@
+/**
+ * screens/WelcomeScreen.tsx
+ *
+ * First-run onboarding screen. Shows the app branding, a feature list,
+ * and a name input. Once the user enters a name (>= 2 chars) and taps
+ * "Let's Go", the name is saved to UserContext + AsyncStorage, the
+ * 'hasSeenWelcome' flag is set, and the screen fades out to reveal
+ * the main tab navigator.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -17,6 +27,7 @@ import { AnimatedButton, FadeInCard } from '../utils/animations';
 import { hapticMedium } from '../utils/haptics';
 
 interface Props {
+  /** Called after the user completes onboarding; parent switches to main. */
   onComplete: () => void;
 }
 
@@ -25,9 +36,10 @@ export default function WelcomeScreen({ onComplete }: Props) {
   const [isFocused, setIsFocused] = useState(false);
   const { setUserName } = useUser();
 
+  // Name must be at least 2 characters to enable the button
   const isValid = name.trim().length >= 2;
 
-  // Animations
+  // -- Staggered entrance animation values --
   const emojiScale = useRef(new Animated.Value(0)).current;
   const emojiRotate = useRef(new Animated.Value(-20)).current;
   const welcomeOpacity = useRef(new Animated.Value(0)).current;
@@ -44,14 +56,17 @@ export default function WelcomeScreen({ onComplete }: Props) {
   const buttonY = useRef(new Animated.Value(30)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
+  // Kick off the staggered entrance sequence on mount
   useEffect(() => {
     const easeOut = Easing.out(Easing.cubic);
 
+    // Logo springs in with rotation
     Animated.parallel([
       Animated.spring(emojiScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }),
       Animated.spring(emojiRotate, { toValue: 0, damping: 12, stiffness: 80, useNativeDriver: true }),
     ]).start();
 
+    // Helper: fade in + slide up a given pair of animated values
     const fadeIn = (opacity: Animated.Value, y: Animated.Value, delay: number) => {
       Animated.parallel([
         Animated.timing(opacity, { toValue: 1, duration: 500, delay, useNativeDriver: true }),
@@ -59,6 +74,7 @@ export default function WelcomeScreen({ onComplete }: Props) {
       ]).start();
     };
 
+    // Stagger each section with increasing delays
     fadeIn(welcomeOpacity, welcomeY, 200);
     fadeIn(titleOpacity, titleY, 350);
     fadeIn(subtitleOpacity, subtitleY, 450);
@@ -70,6 +86,7 @@ export default function WelcomeScreen({ onComplete }: Props) {
     fadeIn(buttonOpacity, buttonY, 1300);
   }, []);
 
+  /** Save name, mark onboarding done, then fade out. */
   const handleGetStarted = async () => {
     if (!isValid) return;
     hapticMedium();
@@ -81,11 +98,13 @@ export default function WelcomeScreen({ onComplete }: Props) {
     });
   };
 
+  // Map numeric rotation to a CSS degree string
   const rotation = emojiRotate.interpolate({
     inputRange: [-20, 0],
     outputRange: ['-20deg', '0deg'],
   });
 
+  /** Feature bullet points displayed during onboarding. */
   const featureTexts = [
     '📊 Visual productivity charts',
     '🔔 Smart 30-min reminders',

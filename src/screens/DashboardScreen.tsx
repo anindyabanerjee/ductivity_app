@@ -1,3 +1,12 @@
+/**
+ * screens/DashboardScreen.tsx
+ *
+ * Productivity insights screen. Lets the user pick a time range
+ * (3H - Monthly) and a chart type (Pie, Bar, Timeline, Progress),
+ * then renders the matching visualisation via ActivityChart.
+ * Supports pull-to-refresh and shows skeleton placeholders while loading.
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -16,6 +25,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import { useUser } from '../context/UserContext';
 import { AnimatedButton, useFadeInUp } from '../utils/animations';
 
+/** Available time-range filter chips. */
 const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
   { label: '3H', value: '3h' },
   { label: '6H', value: '6h' },
@@ -26,6 +36,7 @@ const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
   { label: 'Month', value: 'monthly' },
 ];
 
+/** Available chart-type selector buttons. */
 const CHART_TYPES: { label: string; icon: string; value: ChartType }[] = [
   { label: 'Pie', icon: '🥧', value: 'pie' },
   { label: 'Bar', icon: '📊', value: 'bar' },
@@ -41,6 +52,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const { userName } = useUser();
 
+  // Entrance animations for header, filter bar, and chart-type slider
   const header = useFadeInUp(0);
   const subheader = useFadeInUp(100);
   const filterOpacity = useRef(new Animated.Value(0)).current;
@@ -50,6 +62,7 @@ export default function DashboardScreen() {
 
   const hasAnimated = useRef(false);
 
+  // Run entrance animations once on first render
   useEffect(() => {
     if (!hasAnimated.current) {
       hasAnimated.current = true;
@@ -66,6 +79,7 @@ export default function DashboardScreen() {
     }
   }, []);
 
+  /** Fetch activity logs from Firestore for the currently selected time filter. */
   const fetchData = useCallback(async () => {
     try {
       const data = await getActivities(activeFilter);
@@ -78,11 +92,13 @@ export default function DashboardScreen() {
     }
   }, [activeFilter]);
 
+  // Re-fetch whenever the active filter changes
   useEffect(() => {
     setLoading(true);
     fetchData();
   }, [fetchData]);
 
+  /** Pull-to-refresh handler. */
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();

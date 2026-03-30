@@ -1,3 +1,17 @@
+/**
+ * App.tsx
+ *
+ * Root component for the Ductivity app. Responsible for:
+ *  1. Showing the Splash screen on cold launch
+ *  2. Showing the Welcome/onboarding screen for first-time users
+ *  3. Rendering the main bottom-tab navigator (Task, Dashboard, Settings)
+ *  4. Setting up push notification listeners and passing a trigger
+ *     counter to TaskScreen via NotificationContext
+ *
+ * The entire tree is wrapped in UserProvider so every screen can
+ * access the user's name.
+ */
+
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -18,15 +32,23 @@ import {
   sendTestNotification,
 } from './src/services/notificationService';
 
-// Refresh context to signal TaskScreen to show notification prompt
+/**
+ * NotificationContext
+ *
+ * Provides an incrementing counter that bumps each time a notification
+ * is received or tapped. TaskScreen watches this to show the reminder
+ * banner and haptic nudge.
+ */
 export const NotificationContext = createContext<{
   notificationTrigger: number;
 }>({ notificationTrigger: 0 });
 
+/** Convenience hook for consuming the notification trigger counter. */
 export function useNotificationTrigger() {
   return useContext(NotificationContext);
 }
 
+/** Type map for the three tabs in the bottom navigator. */
 type TabParamList = {
   Task: undefined;
   Dashboard: undefined;
@@ -34,8 +56,11 @@ type TabParamList = {
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
+
+/** True when running inside Expo Go (push notifications disabled). */
 const isExpoGo = Constants.appOwnership === 'expo';
 
+/** The three top-level screens the app can show. */
 type AppScreen = 'splash' | 'welcome' | 'main';
 
 export default function App() {
@@ -45,20 +70,21 @@ export default function App() {
   const notificationListener = useRef<Notifications.EventSubscription>(null);
   const responseListener = useRef<Notifications.EventSubscription>(null);
 
+  // On mount: request notification permissions and subscribe to events
   useEffect(() => {
     setupNotifications();
 
     if (!isExpoGo) {
-      // When notification received while app is open
+      // Foreground: notification received while app is open
       notificationListener.current = Notifications.addNotificationReceivedListener(() => {
-        // Navigate to Task tab and trigger refresh
+        // Navigate to Task tab and bump the trigger counter
         if (navigationRef.current) {
           navigationRef.current.navigate('Task');
         }
         setNotificationTrigger((prev) => prev + 1);
       });
 
-      // When user taps on notification
+      // Background/killed: user tapped a notification to open the app
       responseListener.current = Notifications.addNotificationResponseReceivedListener(() => {
         if (navigationRef.current) {
           navigationRef.current.navigate('Task');
@@ -67,17 +93,20 @@ export default function App() {
       });
     }
 
+    // Clean up listeners on unmount
     return () => {
       if (notificationListener.current) notificationListener.current.remove();
       if (responseListener.current) responseListener.current.remove();
     };
   }, []);
 
+  /** After the splash animation, decide whether to show onboarding or main. */
   const handleSplashFinish = async () => {
     const hasSeenWelcome = await AsyncStorage.getItem('hasSeenWelcome');
     setScreen(hasSeenWelcome === 'true' ? 'main' : 'welcome');
   };
 
+  /** Request permissions, schedule reminders, and fire a test notification. */
   const setupNotifications = async () => {
     try {
       const granted = await registerForPushNotifications();

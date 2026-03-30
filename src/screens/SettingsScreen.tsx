@@ -1,3 +1,16 @@
+/**
+ * screens/SettingsScreen.tsx
+ *
+ * User preferences screen. Allows configuration of:
+ *  - Notification frequency (1 min to 3 hours)
+ *  - Sleep mode (suppress notifications overnight)
+ *  - Do Not Disturb (suppress notifications during a custom window)
+ *  - Data management (clear activities, reset settings, full wipe)
+ *
+ * Changes are persisted via settingsService and applied immediately
+ * when the user taps "Save & Apply".
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -30,11 +43,16 @@ import {
   cancelAllReminders,
 } from '../services/notificationService';
 
+/** Pre-computed list of "HH:00" strings for the 24-hour time picker. */
 const HOURS = Array.from({ length: 24 }, (_, i) => {
   const h = i.toString().padStart(2, '0');
   return `${h}:00`;
 });
 
+/**
+ * TimePicker -- small inline hour selector with +/- buttons.
+ * Wraps around from 23:00 to 00:00 and vice-versa.
+ */
 function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   const currentIndex = HOURS.indexOf(value);
 
@@ -78,6 +96,7 @@ export default function SettingsScreen() {
   const header = useFadeInUp(0);
   const hasAnimated = useRef(false);
 
+  // Load persisted settings on mount
   useEffect(() => {
     getSettings().then((s) => {
       setSettings(s);
@@ -85,6 +104,7 @@ export default function SettingsScreen() {
     });
   }, []);
 
+  // Animate header once on first render
   useEffect(() => {
     if (!hasAnimated.current) {
       hasAnimated.current = true;
@@ -92,6 +112,7 @@ export default function SettingsScreen() {
     }
   }, []);
 
+  /** Update a single setting key, persist, and refresh local state. */
   const updateSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
@@ -100,6 +121,7 @@ export default function SettingsScreen() {
 
   const navigation = useNavigation<any>();
 
+  /** Persist current settings, reschedule notifications, and navigate to Task. */
   const handleSaveAndApply = async () => {
     await saveSettings(settings);
     await scheduleActivityReminder();
@@ -107,6 +129,7 @@ export default function SettingsScreen() {
     navigation.navigate('Task');
   };
 
+  // Don't render until settings have been loaded from storage
   if (!loaded) return null;
 
   return (

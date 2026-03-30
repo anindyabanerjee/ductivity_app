@@ -1,20 +1,11 @@
-import React from 'react';
-import { Pressable, PressableProps, ViewStyle } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withDelay,
+import React, { useRef, useEffect } from 'react';
+import {
+  Animated,
+  Pressable,
+  PressableProps,
   Easing,
-  SharedValue,
-} from 'react-native-reanimated';
+} from 'react-native';
 import { hapticLight } from './haptics';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-export const SPRING_CONFIG = { damping: 15, stiffness: 150, mass: 0.8 };
-export const TIMING_CONFIG = { duration: 400, easing: Easing.out(Easing.cubic) };
 
 interface AnimatedButtonProps extends PressableProps {
   children: React.ReactNode;
@@ -31,82 +22,73 @@ export function AnimatedButton({
   onPress,
   ...rest
 }: AnimatedButtonProps) {
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const onPressIn = () => {
+    Animated.spring(scale, { toValue: scaleValue, useNativeDriver: true }).start();
+    if (enableHaptic) hapticLight();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+  };
 
   return (
-    <AnimatedPressable
-      onPressIn={() => {
-        scale.value = withSpring(scaleValue, SPRING_CONFIG);
-        if (enableHaptic) hapticLight();
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, SPRING_CONFIG);
-      }}
-      onPress={onPress}
-      style={[animatedStyle, style]}
-      {...rest}
-    >
-      {children}
-    </AnimatedPressable>
+    <Pressable onPressIn={onPressIn} onPressOut={onPressOut} onPress={onPress} {...rest}>
+      <Animated.View style={[{ transform: [{ scale }] }, style]}>
+        {children}
+      </Animated.View>
+    </Pressable>
   );
 }
 
 export function useFadeInUp(delay: number = 0) {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(20);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(20)).current;
 
   const animate = () => {
-    opacity.value = withDelay(delay, withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) }));
-    translateY.value = withDelay(delay, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 500, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 500, delay, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
   };
 
-  const reset = () => {
-    opacity.value = 0;
-    translateY.value = 20;
-  };
-
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  return { style, animate, reset };
+  const style = { opacity, transform: [{ translateY }] };
+  return { style, animate };
 }
 
-export function useStaggeredList(count: number, staggerMs: number = 60) {
-  const items = Array.from({ length: count }, (_, i) => {
-    const opacity = useSharedValue(0);
-    const translateY = useSharedValue(25);
-    const scale = useSharedValue(0.9);
+/**
+ * Simple animated card wrapper - each instance manages its own animation.
+ * Use this instead of useStaggeredList to avoid hooks-in-loops issues.
+ */
+export function FadeInCard({
+  children,
+  delay = 0,
+  style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  style?: any;
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(25)).current;
+  const scale = useRef(new Animated.Value(0.9)).current;
 
-    const style = useAnimatedStyle(() => ({
-      opacity: opacity.value,
-      transform: [{ translateY: translateY.value }, { scale: scale.value }],
-    }));
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      ]).start();
+    }, delay);
 
-    return { opacity, translateY, scale, style };
-  });
+    return () => clearTimeout(timer);
+  }, []);
 
-  const animate = () => {
-    items.forEach((item, index) => {
-      const delay = index * staggerMs;
-      item.opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
-      item.translateY.value = withDelay(delay, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
-      item.scale.value = withDelay(delay, withSpring(1, SPRING_CONFIG));
-    });
-  };
-
-  const reset = () => {
-    items.forEach((item) => {
-      item.opacity.value = 0;
-      item.translateY.value = 25;
-      item.scale.value = 0.9;
-    });
-  };
-
-  return { items, animate, reset };
+  return (
+    <Animated.View style={[{ opacity, transform: [{ translateY }, { scale }] }, style]}>
+      {children}
+    </Animated.View>
+  );
 }

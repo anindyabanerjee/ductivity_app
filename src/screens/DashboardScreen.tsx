@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,9 @@ import {
   ScrollView,
   RefreshControl,
   StatusBar,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withTiming,
+  Animated,
   Easing,
-} from 'react-native-reanimated';
-import { useFocusEffect } from '@react-navigation/native';
+} from 'react-native';
 import { getActivities } from '../services/activityService';
 import { ActivityLog, TimeFilter } from '../types';
 import ActivityChart, { ChartType } from '../components/ActivityChart';
@@ -35,7 +29,7 @@ const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
 const CHART_TYPES: { label: string; icon: string; value: ChartType }[] = [
   { label: 'Pie', icon: '🥧', value: 'pie' },
   { label: 'Bar', icon: '📊', value: 'bar' },
-  { label: 'Line', icon: '📈', value: 'line' },
+  { label: 'Timeline', icon: '🕐', value: 'timeline' },
   { label: 'Progress', icon: '🔋', value: 'progress' },
 ];
 
@@ -47,45 +41,30 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const { userName } = useUser();
 
-  // Animations
   const header = useFadeInUp(0);
   const subheader = useFadeInUp(100);
-  const filterOpacity = useSharedValue(0);
-  const filterX = useSharedValue(-30);
-  const chartSliderOpacity = useSharedValue(0);
-  const chartSliderX = useSharedValue(-30);
+  const filterOpacity = useRef(new Animated.Value(0)).current;
+  const filterX = useRef(new Animated.Value(-30)).current;
+  const sliderOpacity = useRef(new Animated.Value(0)).current;
+  const sliderX = useRef(new Animated.Value(-30)).current;
 
-  useFocusEffect(
-    useCallback(() => {
-      header.reset();
-      subheader.reset();
-      filterOpacity.value = 0;
-      filterX.value = -30;
-      chartSliderOpacity.value = 0;
-      chartSliderX.value = -30;
+  const hasAnimated = useRef(false);
 
-      const timer = setTimeout(() => {
+  useEffect(() => {
+    if (!hasAnimated.current) {
+      hasAnimated.current = true;
+      setTimeout(() => {
         header.animate();
         subheader.animate();
-        filterOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
-        filterX.value = withDelay(200, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
-        chartSliderOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
-        chartSliderX.value = withDelay(300, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
+        Animated.parallel([
+          Animated.timing(filterOpacity, { toValue: 1, duration: 400, delay: 200, useNativeDriver: true }),
+          Animated.timing(filterX, { toValue: 0, duration: 400, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(sliderOpacity, { toValue: 1, duration: 400, delay: 300, useNativeDriver: true }),
+          Animated.timing(sliderX, { toValue: 0, duration: 400, delay: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]).start();
       }, 50);
-
-      return () => clearTimeout(timer);
-    }, [])
-  );
-
-  const filterStyle = useAnimatedStyle(() => ({
-    opacity: filterOpacity.value,
-    transform: [{ translateX: filterX.value }],
-  }));
-
-  const chartSliderStyle = useAnimatedStyle(() => ({
-    opacity: chartSliderOpacity.value,
-    transform: [{ translateX: chartSliderX.value }],
-  }));
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -112,7 +91,6 @@ export default function DashboardScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-
       <Animated.View style={[styles.headerContainer, header.style]}>
         <Text style={styles.header}>
           {userName ? `${userName}'s Dashboard` : 'Dashboard'}
@@ -122,30 +100,16 @@ export default function DashboardScreen() {
         <Text style={styles.subheader}>Your productivity insights</Text>
       </Animated.View>
 
-      {/* Time Filters */}
-      <Animated.View style={filterStyle}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterContainer}
-          contentContainerStyle={styles.filterContent}
-        >
+      <Animated.View style={{ opacity: filterOpacity, transform: [{ translateX: filterX }] }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer} contentContainerStyle={styles.filterContent}>
           {TIME_FILTERS.map((filter) => (
             <AnimatedButton
               key={filter.value}
-              style={[
-                styles.filterButton,
-                activeFilter === filter.value && styles.activeFilter,
-              ]}
+              style={[styles.filterButton, activeFilter === filter.value && styles.activeFilter]}
               onPress={() => setActiveFilter(filter.value)}
               scaleValue={0.92}
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  activeFilter === filter.value && styles.activeFilterText,
-                ]}
-              >
+              <Text style={[styles.filterText, activeFilter === filter.value && styles.activeFilterText]}>
                 {filter.label}
               </Text>
             </AnimatedButton>
@@ -153,31 +117,17 @@ export default function DashboardScreen() {
         </ScrollView>
       </Animated.View>
 
-      {/* Chart Type Slider */}
-      <Animated.View style={chartSliderStyle}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chartSliderContainer}
-          contentContainerStyle={styles.filterContent}
-        >
+      <Animated.View style={{ opacity: sliderOpacity, transform: [{ translateX: sliderX }] }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chartSliderContainer} contentContainerStyle={styles.filterContent}>
           {CHART_TYPES.map((type) => (
             <AnimatedButton
               key={type.value}
-              style={[
-                styles.chartTypeButton,
-                activeChart === type.value && styles.activeChartType,
-              ]}
+              style={[styles.chartTypeButton, activeChart === type.value && styles.activeChartType]}
               onPress={() => setActiveChart(type.value)}
               scaleValue={0.92}
             >
               <Text style={styles.chartTypeIcon}>{type.icon}</Text>
-              <Text
-                style={[
-                  styles.chartTypeText,
-                  activeChart === type.value && styles.activeChartTypeText,
-                ]}
-              >
+              <Text style={[styles.chartTypeText, activeChart === type.value && styles.activeChartTypeText]}>
                 {type.label}
               </Text>
             </AnimatedButton>
@@ -185,17 +135,10 @@ export default function DashboardScreen() {
         </ScrollView>
       </Animated.View>
 
-      {/* Charts */}
       <ScrollView
         style={styles.chartsContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#e94560"
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e94560" />}
       >
         {loading ? (
           <View style={styles.skeletonContainer}>
@@ -213,86 +156,22 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-    paddingTop: 60,
-  },
-  headerContainer: {
-    paddingHorizontal: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  subheader: {
-    fontSize: 14,
-    color: '#a0a0b0',
-    paddingHorizontal: 20,
-    marginBottom: 14,
-  },
-  filterContainer: {
-    maxHeight: 44,
-    marginBottom: 10,
-  },
-  filterContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#16213e',
-  },
-  activeFilter: {
-    backgroundColor: '#e94560',
-  },
-  filterText: {
-    color: '#a0a0b0',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  activeFilterText: {
-    color: '#fff',
-  },
-  chartSliderContainer: {
-    maxHeight: 50,
-    marginBottom: 14,
-  },
-  chartTypeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#16213e',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  activeChartType: {
-    backgroundColor: '#1a2a4e',
-    borderColor: '#e94560',
-  },
-  chartTypeIcon: {
-    fontSize: 16,
-  },
-  chartTypeText: {
-    color: '#a0a0b0',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  activeChartTypeText: {
-    color: '#e94560',
-  },
-  chartsContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  skeletonContainer: {
-    paddingTop: 8,
-  },
+  container: { flex: 1, backgroundColor: '#1a1a2e', paddingTop: 60 },
+  headerContainer: { paddingHorizontal: 20 },
+  header: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
+  subheader: { fontSize: 14, color: '#a0a0b0', paddingHorizontal: 20, marginBottom: 14 },
+  filterContainer: { maxHeight: 44, marginBottom: 10 },
+  filterContent: { paddingHorizontal: 20, gap: 8 },
+  filterButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#16213e' },
+  activeFilter: { backgroundColor: '#e94560' },
+  filterText: { color: '#a0a0b0', fontSize: 13, fontWeight: '600' },
+  activeFilterText: { color: '#fff' },
+  chartSliderContainer: { maxHeight: 50, marginBottom: 14 },
+  chartTypeButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#16213e', borderWidth: 1, borderColor: 'transparent' },
+  activeChartType: { backgroundColor: '#1a2a4e', borderColor: '#e94560' },
+  chartTypeIcon: { fontSize: 16 },
+  chartTypeText: { color: '#a0a0b0', fontSize: 13, fontWeight: '600' },
+  activeChartTypeText: { color: '#e94560' },
+  chartsContainer: { flex: 1, paddingHorizontal: 20 },
+  skeletonContainer: { paddingTop: 8 },
 });

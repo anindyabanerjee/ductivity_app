@@ -1,98 +1,86 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withDelay,
-  withSequence,
-  withRepeat,
-  Easing,
-  runOnJS,
-} from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, StatusBar, Animated, Easing } from 'react-native';
 
 interface Props {
   onFinish: () => void;
 }
 
 export default function SplashScreen({ onFinish }: Props) {
-  const logoScale = useSharedValue(0);
-  const logoRotate = useSharedValue(-15);
-  const titleOpacity = useSharedValue(0);
-  const titleTranslateY = useSharedValue(20);
-  const subtitleOpacity = useSharedValue(0);
-  const pulseScale = useSharedValue(1);
-  const screenOpacity = useSharedValue(1);
+  const logoScale = useRef(new Animated.Value(0)).current;
+  const logoRotate = useRef(new Animated.Value(-15)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const titleY = useRef(new Animated.Value(20)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const screenOpacity = useRef(new Animated.Value(1)).current;
+  const pulseScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Logo: spring in with rotation
-    logoScale.value = withSpring(1, { damping: 8, stiffness: 100, mass: 0.8 });
-    logoRotate.value = withSpring(0, { damping: 12, stiffness: 100 });
+    // Logo spring in
+    Animated.parallel([
+      Animated.spring(logoScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }),
+      Animated.spring(logoRotate, { toValue: 0, damping: 12, stiffness: 100, useNativeDriver: true }),
+    ]).start();
 
-    // Pulse after landing
+    // Pulse loop
     setTimeout(() => {
-      pulseScale.value = withRepeat(
-        withSequence(
-          withTiming(1.08, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      );
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseScale, { toValue: 1.08, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseScale, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      ).start();
     }, 600);
 
-    // Title fade in
-    titleOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
-    titleTranslateY.value = withDelay(400, withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) }));
+    // Title
+    Animated.parallel([
+      Animated.timing(titleOpacity, { toValue: 1, duration: 600, delay: 400, useNativeDriver: true }),
+      Animated.timing(titleY, { toValue: 0, duration: 600, delay: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
 
     // Subtitle
-    subtitleOpacity.value = withDelay(700, withTiming(1, { duration: 500 }));
+    Animated.timing(subtitleOpacity, { toValue: 1, duration: 500, delay: 700, useNativeDriver: true }).start();
 
-    // Auto-transition after 2.5s
+    // Auto-transition
     const timer = setTimeout(() => {
-      screenOpacity.value = withTiming(0, { duration: 400 }, (finished) => {
-        if (finished) runOnJS(onFinish)();
+      Animated.timing(screenOpacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+        onFinish();
       });
     }, 2500);
 
     return () => clearTimeout(timer);
   }, []);
 
-  const logoStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: logoScale.value * pulseScale.value },
-      { rotate: `${logoRotate.value}deg` },
-    ],
-  }));
-
-  const titleStyle = useAnimatedStyle(() => ({
-    opacity: titleOpacity.value,
-    transform: [{ translateY: titleTranslateY.value }],
-  }));
-
-  const subtitleStyle = useAnimatedStyle(() => ({
-    opacity: subtitleOpacity.value,
-  }));
-
-  const screenStyle = useAnimatedStyle(() => ({
-    opacity: screenOpacity.value,
-  }));
+  const rotation = logoRotate.interpolate({
+    inputRange: [-15, 0],
+    outputRange: ['-15deg', '0deg'],
+  });
 
   return (
-    <Animated.View style={[styles.container, screenStyle]}>
+    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
       <StatusBar barStyle="light-content" />
       <View style={styles.content}>
-        <Animated.Text style={[styles.logo, logoStyle]}>🎯</Animated.Text>
-        <Animated.View style={titleStyle}>
+        <Animated.Text
+          style={[
+            styles.logo,
+            {
+              transform: [
+                { scale: Animated.multiply(logoScale, pulseScale) },
+                { rotate: rotation },
+              ],
+            },
+          ]}
+        >
+          🎯
+        </Animated.Text>
+        <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }] }}>
           <Text style={styles.title}>Ductivity</Text>
         </Animated.View>
-        <Animated.View style={subtitleStyle}>
+        <Animated.View style={{ opacity: subtitleOpacity }}>
           <Text style={styles.subtitle}>Track Your Productivity</Text>
         </Animated.View>
       </View>
 
-      <Animated.View style={[styles.dots, subtitleStyle]}>
+      <Animated.View style={[styles.dots, { opacity: subtitleOpacity }]}>
         <View style={[styles.dot, { backgroundColor: '#4CAF50' }]} />
         <View style={[styles.dot, { backgroundColor: '#FF9800' }]} />
         <View style={[styles.dot, { backgroundColor: '#e94560' }]} />

@@ -1,20 +1,31 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform, Alert } from 'react-native';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { getSettings, getFrequencySeconds, isInTimeRange, parseTime } from './settingsService';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export async function registerForPushNotifications(): Promise<boolean> {
+  if (isExpoGo) {
+    console.log('Push notifications not available in Expo Go.');
+    return false;
+  }
+
   if (!Device.isDevice) {
-    Alert.alert('Notice', 'Push notifications require a physical device.');
+    console.log('Push notifications require a physical device.');
     return false;
   }
 
@@ -27,10 +38,7 @@ export async function registerForPushNotifications(): Promise<boolean> {
   }
 
   if (finalStatus !== 'granted') {
-    Alert.alert(
-      'Notifications Disabled',
-      'Please enable notifications in your device settings for activity reminders to work.'
-    );
+    console.log('Notification permission not granted');
     return false;
   }
 
@@ -46,19 +54,57 @@ export async function registerForPushNotifications(): Promise<boolean> {
   return true;
 }
 
+function isTimeBlocked(date: Date, settings: { sleepModeEnabled: boolean; sleepStart: string; sleepEnd: string; dndEnabled: boolean; dndStart: string; dndEnd: string }): boolean {
+  const minutes = date.getHours() * 60 + date.getMinutes();
+
+  if (settings.sleepModeEnabled) {
+    const sleepS = parseTime(settings.sleepStart);
+    const sleepE = parseTime(settings.sleepEnd);
+    const sleepStartMin = sleepS.hours * 60 + sleepS.minutes;
+    const sleepEndMin = sleepE.hours * 60 + sleepE.minutes;
+
+    if (sleepStartMin <= sleepEndMin) {
+      if (minutes >= sleepStartMin && minutes < sleepEndMin) return true;
+    } else {
+      if (minutes >= sleepStartMin || minutes < sleepEndMin) return true;
+    }
+  }
+
+  if (settings.dndEnabled) {
+    const dndS = parseTime(settings.dndStart);
+    const dndE = parseTime(settings.dndEnd);
+    const dndStartMin = dndS.hours * 60 + dndS.minutes;
+    const dndEndMin = dndE.hours * 60 + dndE.minutes;
+
+    if (dndStartMin <= dndEndMin) {
+      if (minutes >= dndStartMin && minutes < dndEndMin) return true;
+    } else {
+      if (minutes >= dndStartMin || minutes < dndEndMin) return true;
+    }
+  }
+
+  return false;
+}
+
 export async function scheduleActivityReminder(): Promise<void> {
-  // Cancel any existing reminders first
+  if (isExpoGo) return;
+
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  // Schedule multiple notifications at 30-min intervals
-  // Expo Go doesn't support repeating TIME_INTERVAL well,
-  // so we schedule individual notifications for the next 12 hours
+  const settings = await getSettings();
+  const intervalMs = getFrequencySeconds(settings.notificationFrequency) * 1000;
   const now = new Date();
-  const intervalMs = 1 * 60 * 1000; // 1 minute (for testing, change to 30 * 60 * 1000 for production)
-  const count = 24; // 24 notifications = 24 minutes of coverage for testing
 
-  for (let i = 1; i <= count; i++) {
-    const triggerDate = new Date(now.getTime() + i * intervalMs);
+  // Schedule notifications for the next 12 hours
+  const totalMs = 12 * 60 * 60 * 1000;
+  let scheduled = 0;
+
+  for (let offset = intervalMs; offset <= totalMs; offset += intervalMs) {
+    const triggerDate = new Date(now.getTime() + offset);
+
+    // Skip if in sleep or DND window
+    if (isTimeBlocked(triggerDate, settings)) continue;
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'What are you up to? 🎯',
@@ -72,17 +118,19 @@ export async function scheduleActivityReminder(): Promise<void> {
         date: triggerDate,
       },
     });
+    scheduled++;
   }
 
-  console.log(`Scheduled ${count} notifications over the next ${count} minutes (testing mode)`);
+  console.log(`Scheduled ${scheduled} notifications (frequency: ${settings.notificationFrequency})`);
 }
 
-// Send a test notification immediately (for debugging)
 export async function sendTestNotification(): Promise<void> {
+  if (isExpoGo) return;
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Ductivity Test 🎯',
-      body: 'Notifications are working! You\'ll be reminded every 30 mins.',
+      body: 'Notifications are working!',
       sound: 'default',
       ...(Platform.OS === 'android' && { channelId: 'activity-reminder' }),
     },
@@ -94,5 +142,6 @@ export async function sendTestNotification(): Promise<void> {
 }
 
 export async function cancelAllReminders(): Promise<void> {
+  if (isExpoGo) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }

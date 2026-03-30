@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,19 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withDelay,
-  withTiming,
-  withSpring,
+  Animated,
   Easing,
-  runOnJS,
-} from 'react-native-reanimated';
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../context/UserContext';
-import { AnimatedButton, useStaggeredList } from '../utils/animations';
+import { AnimatedButton, FadeInCard } from '../utils/animations';
 import { hapticMedium } from '../utils/haptics';
 
 interface Props {
@@ -35,49 +28,46 @@ export default function WelcomeScreen({ onComplete }: Props) {
   const isValid = name.trim().length >= 2;
 
   // Animations
-  const emojiScale = useSharedValue(0);
-  const emojiRotate = useSharedValue(-20);
-  const welcomeOpacity = useSharedValue(0);
-  const welcomeY = useSharedValue(30);
-  const titleOpacity = useSharedValue(0);
-  const titleY = useSharedValue(30);
-  const subtitleOpacity = useSharedValue(0);
-  const subtitleY = useSharedValue(20);
-  const descOpacity = useSharedValue(0);
-  const descY = useSharedValue(20);
-  const inputOpacity = useSharedValue(0);
-  const inputY = useSharedValue(20);
-  const buttonOpacity = useSharedValue(0);
-  const buttonY = useSharedValue(30);
-  const screenOpacity = useSharedValue(1);
-
-  const features = useStaggeredList(4, 80);
+  const emojiScale = useRef(new Animated.Value(0)).current;
+  const emojiRotate = useRef(new Animated.Value(-20)).current;
+  const welcomeOpacity = useRef(new Animated.Value(0)).current;
+  const welcomeY = useRef(new Animated.Value(30)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const titleY = useRef(new Animated.Value(30)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const subtitleY = useRef(new Animated.Value(20)).current;
+  const descOpacity = useRef(new Animated.Value(0)).current;
+  const descY = useRef(new Animated.Value(20)).current;
+  const inputOpacity = useRef(new Animated.Value(0)).current;
+  const inputY = useRef(new Animated.Value(20)).current;
+  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const buttonY = useRef(new Animated.Value(30)).current;
+  const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Staggered entrance animations
-    emojiScale.value = withSpring(1, { damping: 8, stiffness: 100 });
-    emojiRotate.value = withSpring(0, { damping: 12, stiffness: 80 });
+    const easeOut = Easing.out(Easing.cubic);
 
-    welcomeOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
-    welcomeY.value = withDelay(200, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
+    Animated.parallel([
+      Animated.spring(emojiScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }),
+      Animated.spring(emojiRotate, { toValue: 0, damping: 12, stiffness: 80, useNativeDriver: true }),
+    ]).start();
 
-    titleOpacity.value = withDelay(350, withTiming(1, { duration: 500 }));
-    titleY.value = withDelay(350, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
+    const fadeIn = (opacity: Animated.Value, y: Animated.Value, delay: number) => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 500, delay, useNativeDriver: true }),
+        Animated.timing(y, { toValue: 0, duration: 500, delay, easing: easeOut, useNativeDriver: true }),
+      ]).start();
+    };
 
-    subtitleOpacity.value = withDelay(450, withTiming(1, { duration: 500 }));
-    subtitleY.value = withDelay(450, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
+    fadeIn(welcomeOpacity, welcomeY, 200);
+    fadeIn(titleOpacity, titleY, 350);
+    fadeIn(subtitleOpacity, subtitleY, 450);
+    fadeIn(descOpacity, descY, 550);
 
-    descOpacity.value = withDelay(550, withTiming(1, { duration: 500 }));
-    descY.value = withDelay(550, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
+    // Features animate via FadeInCard component (delay built-in)
 
-    // Features stagger starting at 700ms
-    setTimeout(() => features.animate(), 700);
-
-    inputOpacity.value = withDelay(1100, withTiming(1, { duration: 500 }));
-    inputY.value = withDelay(1100, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
-
-    buttonOpacity.value = withDelay(1300, withTiming(1, { duration: 500 }));
-    buttonY.value = withDelay(1300, withTiming(0, { duration: 500, easing: Easing.out(Easing.cubic) }));
+    fadeIn(inputOpacity, inputY, 1100);
+    fadeIn(buttonOpacity, buttonY, 1300);
   }, []);
 
   const handleGetStarted = async () => {
@@ -86,49 +76,15 @@ export default function WelcomeScreen({ onComplete }: Props) {
     await setUserName(name.trim());
     await AsyncStorage.setItem('hasSeenWelcome', 'true');
 
-    // Fade out then navigate
-    screenOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
-      if (finished) runOnJS(onComplete)();
+    Animated.timing(screenOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+      onComplete();
     });
   };
 
-  const emojiStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: emojiScale.value }, { rotate: `${emojiRotate.value}deg` }],
-  }));
-
-  const welcomeStyle = useAnimatedStyle(() => ({
-    opacity: welcomeOpacity.value,
-    transform: [{ translateY: welcomeY.value }],
-  }));
-
-  const titleStyle = useAnimatedStyle(() => ({
-    opacity: titleOpacity.value,
-    transform: [{ translateY: titleY.value }],
-  }));
-
-  const subtitleStyle = useAnimatedStyle(() => ({
-    opacity: subtitleOpacity.value,
-    transform: [{ translateY: subtitleY.value }],
-  }));
-
-  const descStyle = useAnimatedStyle(() => ({
-    opacity: descOpacity.value,
-    transform: [{ translateY: descY.value }],
-  }));
-
-  const inputStyle = useAnimatedStyle(() => ({
-    opacity: inputOpacity.value,
-    transform: [{ translateY: inputY.value }],
-  }));
-
-  const buttonAnimStyle = useAnimatedStyle(() => ({
-    opacity: buttonOpacity.value,
-    transform: [{ translateY: buttonY.value }],
-  }));
-
-  const screenStyle = useAnimatedStyle(() => ({
-    opacity: screenOpacity.value,
-  }));
+  const rotation = emojiRotate.interpolate({
+    inputRange: [-20, 0],
+    outputRange: ['-20deg', '0deg'],
+  });
 
   const featureTexts = [
     '📊 Visual productivity charts',
@@ -138,7 +94,7 @@ export default function WelcomeScreen({ onComplete }: Props) {
   ];
 
   return (
-    <Animated.View style={[styles.container, screenStyle]}>
+    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
       <StatusBar barStyle="light-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -150,21 +106,25 @@ export default function WelcomeScreen({ onComplete }: Props) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            <Animated.Text style={[styles.emoji, emojiStyle]}>🎯</Animated.Text>
+            <Animated.Text
+              style={[styles.emoji, { transform: [{ scale: emojiScale }, { rotate: rotation }] }]}
+            >
+              🎯
+            </Animated.Text>
 
-            <Animated.View style={welcomeStyle}>
+            <Animated.View style={{ opacity: welcomeOpacity, transform: [{ translateY: welcomeY }] }}>
               <Text style={styles.welcome}>Welcome</Text>
             </Animated.View>
 
-            <Animated.View style={titleStyle}>
+            <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }] }}>
               <Text style={styles.title}>Ductivity</Text>
             </Animated.View>
 
-            <Animated.View style={subtitleStyle}>
+            <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
               <Text style={styles.subtitle}>Track Your Productivity</Text>
             </Animated.View>
 
-            <Animated.View style={descStyle}>
+            <Animated.View style={{ opacity: descOpacity, transform: [{ translateY: descY }] }}>
               <Text style={styles.description}>
                 Log your activities every 30 minutes and see how productively you spend your time.
               </Text>
@@ -172,19 +132,16 @@ export default function WelcomeScreen({ onComplete }: Props) {
 
             <View style={styles.features}>
               {featureTexts.map((text, index) => (
-                <Animated.View key={index} style={features.items[index].style}>
+                <FadeInCard key={index} delay={700 + index * 80}>
                   <Text style={styles.featureItem}>{text}</Text>
-                </Animated.View>
+                </FadeInCard>
               ))}
             </View>
 
-            <Animated.View style={[styles.inputContainer, inputStyle]}>
+            <Animated.View style={[styles.inputContainer, { opacity: inputOpacity, transform: [{ translateY: inputY }] }]}>
               <Text style={styles.inputLabel}>What's your name?</Text>
               <TextInput
-                style={[
-                  styles.textInput,
-                  isFocused && styles.textInputFocused,
-                ]}
+                style={[styles.textInput, isFocused && styles.textInputFocused]}
                 placeholder="Enter your name..."
                 placeholderTextColor="#666"
                 value={name}
@@ -197,7 +154,7 @@ export default function WelcomeScreen({ onComplete }: Props) {
             </Animated.View>
           </View>
 
-          <Animated.View style={buttonAnimStyle}>
+          <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonY }] }}>
             <AnimatedButton
               style={[styles.button, !isValid && styles.buttonDisabled]}
               onPress={handleGetStarted}
@@ -216,100 +173,24 @@ export default function WelcomeScreen({ onComplete }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
   scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'space-between',
-    padding: 30,
-    paddingTop: 70,
-    paddingBottom: 50,
+    flexGrow: 1, justifyContent: 'space-between',
+    padding: 30, paddingTop: 70, paddingBottom: 50,
   },
-  content: {
-    alignItems: 'center',
-  },
-  emoji: {
-    fontSize: 70,
-    marginBottom: 16,
-  },
-  welcome: {
-    fontSize: 22,
-    color: '#a0a0b0',
-    fontWeight: '300',
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 42,
-    fontWeight: 'bold',
-    color: '#e94560',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#a0a0b0',
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 15,
-    color: '#c0c0d0',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
-  },
-  features: {
-    alignSelf: 'stretch',
-    gap: 10,
-    marginBottom: 28,
-  },
-  featureItem: {
-    fontSize: 15,
-    color: '#d0d0e0',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  inputContainer: {
-    alignSelf: 'stretch',
-    marginBottom: 8,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#a0a0b0',
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  textInput: {
-    backgroundColor: '#16213e',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#fff',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  textInputFocused: {
-    borderColor: '#e94560',
-  },
-  button: {
-    backgroundColor: '#e94560',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  buttonDisabled: {
-    backgroundColor: '#e9456050',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
+  content: { alignItems: 'center' },
+  emoji: { fontSize: 70, marginBottom: 16 },
+  welcome: { fontSize: 22, color: '#a0a0b0', fontWeight: '300', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 4 },
+  title: { fontSize: 42, fontWeight: 'bold', color: '#e94560', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#a0a0b0', marginBottom: 20 },
+  description: { fontSize: 15, color: '#c0c0d0', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  features: { alignSelf: 'stretch', gap: 10, marginBottom: 28 },
+  featureItem: { fontSize: 15, color: '#d0d0e0', paddingVertical: 10, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, overflow: 'hidden' },
+  inputContainer: { alignSelf: 'stretch', marginBottom: 8 },
+  inputLabel: { fontSize: 14, color: '#a0a0b0', marginBottom: 8, marginLeft: 4 },
+  textInput: { backgroundColor: '#16213e', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 14, fontSize: 16, color: '#fff', borderWidth: 2, borderColor: 'transparent' },
+  textInputFocused: { borderColor: '#e94560' },
+  button: { backgroundColor: '#e94560', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 },
+  buttonDisabled: { backgroundColor: '#e9456050' },
+  buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
 });

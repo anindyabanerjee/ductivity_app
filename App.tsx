@@ -5,6 +5,8 @@ import { Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 
+import { UserProvider } from './src/context/UserContext';
+import SplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import TaskScreen from './src/screens/TaskScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
@@ -21,12 +23,13 @@ type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
+type AppScreen = 'splash' | 'welcome' | 'main';
+
 export default function App() {
-  const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
+  const [screen, setScreen] = useState<AppScreen>('splash');
   const notificationListener = useRef<Notifications.EventSubscription>(null);
 
   useEffect(() => {
-    checkFirstLaunch();
     setupNotifications();
 
     return () => {
@@ -36,9 +39,9 @@ export default function App() {
     };
   }, []);
 
-  const checkFirstLaunch = async () => {
+  const handleSplashFinish = async () => {
     const hasSeenWelcome = await AsyncStorage.getItem('hasSeenWelcome');
-    setShowWelcome(hasSeenWelcome !== 'true');
+    setScreen(hasSeenWelcome === 'true' ? 'main' : 'welcome');
   };
 
   const setupNotifications = async () => {
@@ -46,7 +49,6 @@ export default function App() {
       const granted = await registerForPushNotifications();
       if (granted) {
         await scheduleActivityReminder();
-        // Send a test notification 2 seconds after launch
         await sendTestNotification();
       }
     } catch (error) {
@@ -54,55 +56,65 @@ export default function App() {
     }
   };
 
-  // Loading state
-  if (showWelcome === null) return null;
+  if (screen === 'splash') {
+    return (
+      <UserProvider>
+        <SplashScreen onFinish={handleSplashFinish} />
+      </UserProvider>
+    );
+  }
 
-  // Show welcome screen on first launch
-  if (showWelcome) {
-    return <WelcomeScreen onComplete={() => setShowWelcome(false)} />;
+  if (screen === 'welcome') {
+    return (
+      <UserProvider>
+        <WelcomeScreen onComplete={() => setScreen('main')} />
+      </UserProvider>
+    );
   }
 
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: '#0f0f23',
-            borderTopColor: '#16213e',
-            paddingBottom: 8,
-            paddingTop: 8,
-            height: 60,
-          },
-          tabBarActiveTintColor: '#e94560',
-          tabBarInactiveTintColor: '#a0a0b0',
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '600',
-          },
-        }}
-      >
-        <Tab.Screen
-          name="Task"
-          component={TaskScreen}
-          options={{
-            tabBarLabel: 'Log Activity',
-            tabBarIcon: ({ color, size }) => (
-              <Text style={{ fontSize: size, color }}>🎯</Text>
-            ),
+    <UserProvider>
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: {
+              backgroundColor: '#0f0f23',
+              borderTopColor: '#16213e',
+              paddingBottom: 8,
+              paddingTop: 8,
+              height: 60,
+            },
+            tabBarActiveTintColor: '#e94560',
+            tabBarInactiveTintColor: '#a0a0b0',
+            tabBarLabelStyle: {
+              fontSize: 12,
+              fontWeight: '600',
+            },
           }}
-        />
-        <Tab.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{
-            tabBarLabel: 'Dashboard',
-            tabBarIcon: ({ color, size }) => (
-              <Text style={{ fontSize: size, color }}>📊</Text>
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+        >
+          <Tab.Screen
+            name="Task"
+            component={TaskScreen}
+            options={{
+              tabBarLabel: 'Log Activity',
+              tabBarIcon: ({ color, size }) => (
+                <Text style={{ fontSize: size, color }}>🎯</Text>
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Dashboard"
+            component={DashboardScreen}
+            options={{
+              tabBarLabel: 'Dashboard',
+              tabBarIcon: ({ color, size }) => (
+                <Text style={{ fontSize: size, color }}>📊</Text>
+              ),
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </UserProvider>
   );
 }

@@ -3,14 +3,24 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
   RefreshControl,
   StatusBar,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { useFocusEffect } from '@react-navigation/native';
 import { getActivities } from '../services/activityService';
 import { ActivityLog, TimeFilter } from '../types';
-import ActivityChart from '../components/ActivityChart';
+import ActivityChart, { ChartType } from '../components/ActivityChart';
+import SkeletonLoader from '../components/SkeletonLoader';
+import { useUser } from '../context/UserContext';
+import { AnimatedButton, useFadeInUp } from '../utils/animations';
 
 const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
   { label: '3H', value: '3h' },
@@ -22,11 +32,60 @@ const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
   { label: 'Month', value: 'monthly' },
 ];
 
+const CHART_TYPES: { label: string; icon: string; value: ChartType }[] = [
+  { label: 'Pie', icon: '🥧', value: 'pie' },
+  { label: 'Bar', icon: '📊', value: 'bar' },
+  { label: 'Line', icon: '📈', value: 'line' },
+  { label: 'Progress', icon: '🔋', value: 'progress' },
+];
+
 export default function DashboardScreen() {
   const [activeFilter, setActiveFilter] = useState<TimeFilter>('daily');
+  const [activeChart, setActiveChart] = useState<ChartType>('pie');
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { userName } = useUser();
+
+  // Animations
+  const header = useFadeInUp(0);
+  const subheader = useFadeInUp(100);
+  const filterOpacity = useSharedValue(0);
+  const filterX = useSharedValue(-30);
+  const chartSliderOpacity = useSharedValue(0);
+  const chartSliderX = useSharedValue(-30);
+
+  useFocusEffect(
+    useCallback(() => {
+      header.reset();
+      subheader.reset();
+      filterOpacity.value = 0;
+      filterX.value = -30;
+      chartSliderOpacity.value = 0;
+      chartSliderX.value = -30;
+
+      const timer = setTimeout(() => {
+        header.animate();
+        subheader.animate();
+        filterOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
+        filterX.value = withDelay(200, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
+        chartSliderOpacity.value = withDelay(300, withTiming(1, { duration: 400 }));
+        chartSliderX.value = withDelay(300, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
+      }, 50);
+
+      return () => clearTimeout(timer);
+    }, [])
+  );
+
+  const filterStyle = useAnimatedStyle(() => ({
+    opacity: filterOpacity.value,
+    transform: [{ translateX: filterX.value }],
+  }));
+
+  const chartSliderStyle = useAnimatedStyle(() => ({
+    opacity: chartSliderOpacity.value,
+    transform: [{ translateX: chartSliderX.value }],
+  }));
 
   const fetchData = useCallback(async () => {
     try {
@@ -53,36 +112,78 @@ export default function DashboardScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Text style={styles.header}>Dashboard</Text>
-      <Text style={styles.subheader}>Your productivity insights</Text>
+
+      <Animated.View style={[styles.headerContainer, header.style]}>
+        <Text style={styles.header}>
+          {userName ? `${userName}'s Dashboard` : 'Dashboard'}
+        </Text>
+      </Animated.View>
+      <Animated.View style={subheader.style}>
+        <Text style={styles.subheader}>Your productivity insights</Text>
+      </Animated.View>
 
       {/* Time Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        {TIME_FILTERS.map((filter) => (
-          <TouchableOpacity
-            key={filter.value}
-            style={[
-              styles.filterButton,
-              activeFilter === filter.value && styles.activeFilter,
-            ]}
-            onPress={() => setActiveFilter(filter.value)}
-          >
-            <Text
+      <Animated.View style={filterStyle}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {TIME_FILTERS.map((filter) => (
+            <AnimatedButton
+              key={filter.value}
               style={[
-                styles.filterText,
-                activeFilter === filter.value && styles.activeFilterText,
+                styles.filterButton,
+                activeFilter === filter.value && styles.activeFilter,
               ]}
+              onPress={() => setActiveFilter(filter.value)}
+              scaleValue={0.92}
             >
-              {filter.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.filterText,
+                  activeFilter === filter.value && styles.activeFilterText,
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </AnimatedButton>
+          ))}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Chart Type Slider */}
+      <Animated.View style={chartSliderStyle}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chartSliderContainer}
+          contentContainerStyle={styles.filterContent}
+        >
+          {CHART_TYPES.map((type) => (
+            <AnimatedButton
+              key={type.value}
+              style={[
+                styles.chartTypeButton,
+                activeChart === type.value && styles.activeChartType,
+              ]}
+              onPress={() => setActiveChart(type.value)}
+              scaleValue={0.92}
+            >
+              <Text style={styles.chartTypeIcon}>{type.icon}</Text>
+              <Text
+                style={[
+                  styles.chartTypeText,
+                  activeChart === type.value && styles.activeChartTypeText,
+                ]}
+              >
+                {type.label}
+              </Text>
+            </AnimatedButton>
+          ))}
+        </ScrollView>
+      </Animated.View>
 
       {/* Charts */}
       <ScrollView
@@ -97,11 +198,13 @@ export default function DashboardScreen() {
         }
       >
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading...</Text>
+          <View style={styles.skeletonContainer}>
+            <SkeletonLoader width="100%" height={120} borderRadius={12} />
+            <SkeletonLoader width="100%" height={200} borderRadius={12} style={{ marginTop: 16 }} />
+            <SkeletonLoader width="60%" height={20} borderRadius={8} style={{ marginTop: 16 }} />
           </View>
         ) : (
-          <ActivityChart logs={logs} />
+          <ActivityChart logs={logs} chartType={activeChart} />
         )}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -115,22 +218,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     paddingTop: 60,
   },
+  headerContainer: {
+    paddingHorizontal: 20,
+  },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    paddingHorizontal: 20,
     marginBottom: 4,
   },
   subheader: {
     fontSize: 14,
     color: '#a0a0b0',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   filterContainer: {
     maxHeight: 44,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   filterContent: {
     paddingHorizontal: 20,
@@ -153,16 +258,41 @@ const styles = StyleSheet.create({
   activeFilterText: {
     color: '#fff',
   },
+  chartSliderContainer: {
+    maxHeight: 50,
+    marginBottom: 14,
+  },
+  chartTypeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#16213e',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  activeChartType: {
+    backgroundColor: '#1a2a4e',
+    borderColor: '#e94560',
+  },
+  chartTypeIcon: {
+    fontSize: 16,
+  },
+  chartTypeText: {
+    color: '#a0a0b0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  activeChartTypeText: {
+    color: '#e94560',
+  },
   chartsContainer: {
     flex: 1,
     paddingHorizontal: 20,
   },
-  loadingContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#a0a0b0',
-    fontSize: 16,
+  skeletonContainer: {
+    paddingTop: 8,
   },
 });

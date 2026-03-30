@@ -23,7 +23,9 @@
       },
       "package": "com.ductivity.app",
       "edgeToEdgeEnabled": true,
-      "permissions": ["NOTIFICATIONS"]
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,8 +41,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "e74531a7-7e03-4f51-8e98-9261cd4571cd"
       }
-    }
+    },
+    "owner": "anindyaexpo101"
   }
 }

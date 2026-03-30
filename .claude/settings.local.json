@@ -29,7 +29,8 @@
       "Bash(firebase login:ci --no-localhost)",
       "Bash(npx expo:*)",
       "Bash(eas whoami:*)",
-      "Bash(eas build:*)"
+      "Bash(eas build:*)",
+      "Bash(eas init:*)"
     ]
   }
 }

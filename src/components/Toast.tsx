@@ -2,15 +2,13 @@
  * components/Toast.tsx
  *
  * A top-of-screen toast notification that slides down to confirm an
- * activity was logged, then auto-dismisses after 2.5 seconds.
- * Colour-coded by the activity's category.
+ * activity was logged, with an Undo button to delete the last entry.
+ * Auto-dismisses after 4 seconds.
  */
 
 import React, { useEffect, useRef } from 'react';
-import { Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { Text, StyleSheet, Animated, Easing, TouchableOpacity, View } from 'react-native';
 import { CATEGORY_COLORS, CategoryType } from '../types';
-
-const screenWidth = Dimensions.get('window').width;
 
 interface ToastProps {
   visible: boolean;
@@ -18,39 +16,56 @@ interface ToastProps {
   activityName: string;
   category: CategoryType;
   time: string;
-  /** Called once the exit animation completes so the parent can unmount the toast. */
   onHide: () => void;
+  onUndo?: () => void;
 }
 
-export default function Toast({ visible, emoji, activityName, category, time, onHide }: ToastProps) {
+function Toast({ visible, emoji, activityName, category, time, onHide, onUndo }: ToastProps) {
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Animate in when visible becomes true, then auto-hide after 2.5 seconds
   useEffect(() => {
     if (visible) {
-      // Slide in from top with spring physics
+      // Reset values for new toast
+      translateY.setValue(-120);
+      opacity.setValue(0);
+      scale.setValue(0.8);
+
+      // Slide in
       Animated.parallel([
         Animated.spring(translateY, { toValue: 0, damping: 14, stiffness: 120, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
         Animated.spring(scale, { toValue: 1, damping: 12, stiffness: 100, useNativeDriver: true }),
       ]).start();
 
-      // Auto-hide after 2.5s
-      const timer = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(translateY, { toValue: -120, duration: 300, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.timing(scale, { toValue: 0.8, duration: 300, useNativeDriver: true }),
-        ]).start(() => {
-          onHide();
-        });
-      }, 2500);
+      // Auto-hide after 4s (longer to give time for undo)
+      timerRef.current = setTimeout(() => {
+        hideToast();
+      }, 4000);
 
-      return () => clearTimeout(timer);
+      return () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+      };
     }
   }, [visible]);
+
+  const hideToast = () => {
+    Animated.parallel([
+      Animated.timing(translateY, { toValue: -120, duration: 300, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 0.8, duration: 300, useNativeDriver: true }),
+    ]).start(() => {
+      onHide();
+    });
+  };
+
+  const handleUndo = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (onUndo) onUndo();
+    hideToast();
+  };
 
   if (!visible) return null;
 
@@ -68,17 +83,26 @@ export default function Toast({ visible, emoji, activityName, category, time, on
       ]}
     >
       <Text style={styles.emoji}>{emoji}</Text>
-      <Animated.View style={styles.textContainer}>
+      <View style={styles.textContainer}>
         <Text style={styles.title}>Activity Logged!</Text>
         <Text style={styles.activity}>{activityName}</Text>
         <Text style={styles.time}>{time}</Text>
-      </Animated.View>
-      <Animated.View style={[styles.badge, { backgroundColor: accentColor + '30' }]}>
-        <Text style={[styles.badgeText, { color: accentColor }]}>{category}</Text>
-      </Animated.View>
+      </View>
+      <View style={styles.rightSection}>
+        <View style={[styles.badge, { backgroundColor: accentColor + '30' }]}>
+          <Text style={[styles.badgeText, { color: accentColor }]}>{category}</Text>
+        </View>
+        {onUndo && (
+          <TouchableOpacity style={styles.undoButton} onPress={handleUndo} activeOpacity={0.7}>
+            <Text style={styles.undoText}>Undo</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </Animated.View>
   );
 }
+
+export default React.memo(Toast);
 
 const styles = StyleSheet.create({
   container: {
@@ -89,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#16213e',
     borderRadius: 16,
     borderLeftWidth: 4,
-    padding: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -101,35 +125,50 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
   },
   emoji: {
-    fontSize: 36,
+    fontSize: 32,
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#a0a0b0',
     fontWeight: '500',
     marginBottom: 2,
   },
   activity: {
-    fontSize: 17,
+    fontSize: 16,
     color: '#fff',
     fontWeight: 'bold',
   },
   time: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#666',
     marginTop: 2,
   },
+  rightSection: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   badge: {
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     textTransform: 'capitalize',
+  },
+  undoButton: {
+    backgroundColor: '#e94560',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  undoText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

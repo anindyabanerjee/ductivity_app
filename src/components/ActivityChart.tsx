@@ -7,7 +7,7 @@
  * chart and an animated empty-state when no data exists.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Easing } from 'react-native';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { ActivityLog, CategoryType, CATEGORY_COLORS, CATEGORY_LABELS } from '../types';
@@ -70,25 +70,32 @@ export default function ActivityChart({ logs, chartType }: Props) {
     );
   }
 
-  // Aggregate log counts by category (for pie / progress charts)
-  const categoryCounts = logs.reduce((acc, log) => {
-    acc[log.category] = (acc[log.category] || 0) + 1;
-    return acc;
-  }, {} as Record<CategoryType, number>);
+  // Memoize all aggregation so it only recalculates when logs change
+  const { categoryCounts, activityCounts, totalLogs, productiveCount, productivePercent, sortedActivities } = useMemo(() => {
+    const catCounts = logs.reduce((acc, log) => {
+      acc[log.category] = (acc[log.category] || 0) + 1;
+      return acc;
+    }, {} as Record<CategoryType, number>);
 
-  // Aggregate log counts by individual activity name (for bar chart)
-  const activityCounts = logs.reduce((acc, log) => {
-    acc[log.activity] = (acc[log.activity] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+    const actCounts = logs.reduce((acc, log) => {
+      acc[log.activity] = (acc[log.activity] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  // Compute the headline productivity score shown in the score card
-  const totalLogs = logs.length;
-  const productiveCount = logs.filter(l => l.category === 'productive').length;
-  const productivePercent = Math.round((productiveCount / totalLogs) * 100);
+    const total = logs.length;
+    const prodCount = logs.filter(l => l.category === 'productive').length;
+    const prodPercent = total > 0 ? Math.round((prodCount / total) * 100) : 0;
+    const sorted = Object.entries(actCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
 
-  // Top 6 activities by frequency, used by the bar chart
-  const sortedActivities = Object.entries(activityCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    return {
+      categoryCounts: catCounts,
+      activityCounts: actCounts,
+      totalLogs: total,
+      productiveCount: prodCount,
+      productivePercent: prodPercent,
+      sortedActivities: sorted,
+    };
+  }, [logs]);
 
   /** Shared configuration object for react-native-chart-kit charts. */
   const chartConfig = {

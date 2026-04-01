@@ -67,29 +67,5 @@ export function getFrequencySeconds(freq: NotificationFrequency): number {
   return FREQUENCY_OPTIONS.find(o => o.value === freq)?.seconds ?? 1800;
 }
 
-/** Parse an "HH:MM" string into numeric hours and minutes. */
-export function parseTime(timeStr: string): { hours: number; minutes: number } {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return { hours, minutes };
-}
-
-/**
- * Check whether the current time falls inside the range [startStr, endStr).
- * Handles overnight ranges (e.g. 23:00 - 07:00) as well as same-day ranges.
- */
-export function isInTimeRange(startStr: string, endStr: string): boolean {
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const start = parseTime(startStr);
-  const end = parseTime(endStr);
-  const startMinutes = start.hours * 60 + start.minutes;
-  const endMinutes = end.hours * 60 + end.minutes;
-
-  if (startMinutes <= endMinutes) {
-    // Same day range (e.g., 09:00 - 17:00)
-    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-  } else {
-    // Overnight range (e.g., 23:00 - 07:00)
-    return currentMinutes >= startMinutes || currentMinutes < endMinutes;
-  }
-}
+// Re-export time utilities from the shared module for backward compatibility
+export { parseTime, isCurrentTimeInRange as isInTimeRange } from '../utils/timeUtils';

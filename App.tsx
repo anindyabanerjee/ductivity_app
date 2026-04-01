@@ -21,6 +21,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 
 import { UserProvider } from './src/context/UserContext';
+import { hapticLight } from './src/utils/haptics';
 import SplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import TaskScreen from './src/screens/TaskScreen';
@@ -145,16 +146,23 @@ export default function App() {
               tabBarStyle: {
                 backgroundColor: '#0f0f23',
                 borderTopColor: '#16213e',
-                paddingBottom: 8,
-                paddingTop: 8,
-                height: 60,
+                paddingBottom: 30,
+                paddingTop: 10,
+                height: 90,
               },
               tabBarActiveTintColor: '#e94560',
               tabBarInactiveTintColor: '#a0a0b0',
-              tabBarLabelStyle: {
-                fontSize: 12,
-                fontWeight: '600',
+              tabBarIconStyle: {
+                marginBottom: 2,
               },
+              tabBarLabelStyle: {
+                fontSize: 11,
+                fontWeight: '600',
+                marginBottom: 8,
+              },
+            }}
+            screenListeners={{
+              tabPress: () => hapticLight(),
             }}
           >
             <Tab.Screen

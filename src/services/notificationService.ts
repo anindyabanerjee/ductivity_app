@@ -16,7 +16,9 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { getSettings, getFrequencySeconds, isInTimeRange, parseTime } from './settingsService';
+import { getSettings, getFrequencySeconds } from './settingsService';
+import { isMinuteInRange } from '../utils/timeUtils';
+import { NOTIFICATION_WINDOW_HOURS, TEST_NOTIFICATION_DELAY_SECONDS } from '../config/constants';
 
 /** True when running inside the Expo Go client (no native module access). */
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -83,34 +85,12 @@ export async function registerForPushNotifications(): Promise<boolean> {
 function isTimeBlocked(date: Date, settings: { sleepModeEnabled: boolean; sleepStart: string; sleepEnd: string; dndEnabled: boolean; dndStart: string; dndEnd: string }): boolean {
   const minutes = date.getHours() * 60 + date.getMinutes();
 
-  // Check sleep mode window
-  if (settings.sleepModeEnabled) {
-    const sleepS = parseTime(settings.sleepStart);
-    const sleepE = parseTime(settings.sleepEnd);
-    const sleepStartMin = sleepS.hours * 60 + sleepS.minutes;
-    const sleepEndMin = sleepE.hours * 60 + sleepE.minutes;
-
-    if (sleepStartMin <= sleepEndMin) {
-      if (minutes >= sleepStartMin && minutes < sleepEndMin) return true;
-    } else {
-      if (minutes >= sleepStartMin || minutes < sleepEndMin) return true;
-    }
+  if (settings.sleepModeEnabled && isMinuteInRange(minutes, settings.sleepStart, settings.sleepEnd)) {
+    return true;
   }
-
-  // Check DND window
-  if (settings.dndEnabled) {
-    const dndS = parseTime(settings.dndStart);
-    const dndE = parseTime(settings.dndEnd);
-    const dndStartMin = dndS.hours * 60 + dndS.minutes;
-    const dndEndMin = dndE.hours * 60 + dndE.minutes;
-
-    if (dndStartMin <= dndEndMin) {
-      if (minutes >= dndStartMin && minutes < dndEndMin) return true;
-    } else {
-      if (minutes >= dndStartMin || minutes < dndEndMin) return true;
-    }
+  if (settings.dndEnabled && isMinuteInRange(minutes, settings.dndStart, settings.dndEnd)) {
+    return true;
   }
-
   return false;
 }
 
@@ -128,8 +108,7 @@ export async function scheduleActivityReminder(): Promise<void> {
   const intervalMs = getFrequencySeconds(settings.notificationFrequency) * 1000;
   const now = new Date();
 
-  // Schedule notifications for the next 12 hours
-  const totalMs = 12 * 60 * 60 * 1000;
+  const totalMs = NOTIFICATION_WINDOW_HOURS * 60 * 60 * 1000;
   let scheduled = 0;
 
   for (let offset = intervalMs; offset <= totalMs; offset += intervalMs) {
@@ -170,7 +149,7 @@ export async function sendTestNotification(): Promise<void> {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 2,
+      seconds: TEST_NOTIFICATION_DELAY_SECONDS,
     },
   });
 }

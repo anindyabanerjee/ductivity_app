@@ -12,6 +12,8 @@
 import {
   collection,
   addDoc,
+  doc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -20,21 +22,28 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { ActivityLog, CategoryType, TimeFilter } from '../types';
+import { ACTIVITIES_COLLECTION, DEFAULT_USER_ID } from '../config/constants';
+import { getCached, setCache, clearCache } from './queryCache';
 
-/** Firestore collection that stores activity log documents. */
-const COLLECTION_NAME = 'activities';
+const COLLECTION_NAME = ACTIVITIES_COLLECTION;
+const USER_ID = DEFAULT_USER_ID;
 
-/** Hard-coded user identifier (single-user app for now). */
-const USER_ID = 'default_user'; // Simple single-user setup
-
-/** Write a new activity log to Firestore with a server-side timestamp. */
-export async function logActivity(activityName: string, category: CategoryType): Promise<void> {
-  await addDoc(collection(db, COLLECTION_NAME), {
+/** Write a new activity log to Firestore. Returns the document ID for undo support. Invalidates query cache. */
+export async function logActivity(activityName: string, category: CategoryType): Promise<string> {
+  clearCache(); // Invalidate cached dashboard queries
+  const docRef = await addDoc(collection(db, COLLECTION_NAME), {
     userId: USER_ID,
     activity: activityName,
     category,
     timestamp: Timestamp.now(),
   });
+  return docRef.id;
+}
+
+/** Delete a single activity log by its Firestore document ID (used for undo). Invalidates query cache. */
+export async function deleteActivity(docId: string): Promise<void> {
+  clearCache();
+  await deleteDoc(doc(db, COLLECTION_NAME, docId));
 }
 
 /**
@@ -68,6 +77,11 @@ function getFilterStartDate(filter: TimeFilter): Date {
  * ordered newest-first. Firestore Timestamps are converted to JS Dates.
  */
 export async function getActivities(filter: TimeFilter): Promise<ActivityLog[]> {
+  // Return cached result if available (avoids re-fetching on rapid filter switches)
+  const cacheKey = `activities_${filter}`;
+  const cached = getCached<ActivityLog[]>(cacheKey);
+  if (cached) return cached;
+
   const startDate = getFilterStartDate(filter);
   const q = query(
     collection(db, COLLECTION_NAME),
@@ -77,7 +91,7 @@ export async function getActivities(filter: TimeFilter): Promise<ActivityLog[]> 
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => {
+  const results = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -87,4 +101,7 @@ export async function getActivities(filter: TimeFilter): Promise<ActivityLog[]> 
       timestamp: data.timestamp.toDate(),
     };
   });
+
+  setCache(cacheKey, results);
+  return results;
 }

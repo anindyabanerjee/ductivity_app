@@ -24,6 +24,7 @@ import ActivityChart, { ChartType } from '../components/ActivityChart';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { useUser } from '../context/UserContext';
 import { AnimatedButton, useFadeInUp } from '../utils/animations';
+import WordOfTheDay from '../components/WordOfTheDay';
 
 /** Available time-range filter chips. */
 const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
@@ -165,6 +166,7 @@ export default function DashboardScreen() {
         ) : (
           <ActivityChart logs={logs} chartType={activeChart} />
         )}
+        <WordOfTheDay />
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>

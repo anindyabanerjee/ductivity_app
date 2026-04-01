@@ -16,7 +16,7 @@ interface Props {
   style?: ViewStyle;
 }
 
-export default function SkeletonLoader({ width, height, borderRadius = 12, style }: Props) {
+function SkeletonLoader({ width, height, borderRadius = 12, style }: Props) {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   // Start an infinite pulse loop on mount
@@ -38,3 +38,5 @@ export default function SkeletonLoader({ width, height, borderRadius = 12, style
     />
   );
 }
+
+export default React.memo(SkeletonLoader);

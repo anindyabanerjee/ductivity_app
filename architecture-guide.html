@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ductivity App - Architecture Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ========== RESET & BASE ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #1a1a2e;
+  color: #d0d0e0;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+::selection { background: #e94560; color: #fff; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0f0f23; }
+::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+
+/* ========== STICKY NAV ========== */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(15, 15, 35, 0.92); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(233, 69, 96, 0.2);
+  padding: 0 24px; height: 64px;
+  display: flex; align-items: center; gap: 24px;
+}
+.nav-brand {
+  font-size: 18px; font-weight: 800; color: #e94560;
+  white-space: nowrap; letter-spacing: 1px;
+}
+.nav-links {
+  display: flex; gap: 4px; overflow-x: auto; flex: 1;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-link {
+  padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  color: #a0a0b0; text-decoration: none; white-space: nowrap;
+  transition: all 0.2s;
+}
+.nav-link:hover, .nav-link.active { background: rgba(233, 69, 96, 0.15); color: #e94560; }
+
+/* ========== HERO ========== */
+.hero {
+  padding: 120px 24px 60px; text-align: center;
+  background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%);
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 600px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(233,69,96,0.08) 0%, transparent 70%);
+}
+.hero-emoji { font-size: 80px; margin-bottom: 16px; display: block; animation: heroPulse 3s ease-in-out infinite; }
+@keyframes heroPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+.hero h1 { font-size: 48px; font-weight: 900; color: #e94560; margin-bottom: 8px; letter-spacing: 2px; }
+.hero p { font-size: 18px; color: #a0a0b0; max-width: 500px; margin: 0 auto; }
+.hero-badge {
+  display: inline-block; margin-top: 20px; padding: 6px 16px;
+  background: rgba(233,69,96,0.15); border: 1px solid rgba(233,69,96,0.3);
+  border-radius: 20px; font-size: 13px; color: #e94560; font-weight: 600;
+}
+
+/* ========== SECTIONS ========== */
+.section {
+  padding: 80px 24px; max-width: 1100px; margin: 0 auto;
+}
+.section-header {
+  text-align: center; margin-bottom: 48px;
+}
+.section-num {
+  font-size: 13px; font-weight: 700; color: #e94560;
+  text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px;
+}
+.section-title {
+  font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px;
+}
+.section-desc {
+  font-size: 15px; color: #a0a0b0; max-width: 600px; margin: 0 auto;
+}
+
+/* ========== DIAGRAM CONTAINERS ========== */
+.diagram-wrap {
+  background: #16213e; border-radius: 16px; padding: 32px;
+  border: 1px solid rgba(233,69,96,0.1);
+  overflow-x: auto;
+}
+.diagram-wrap + .diagram-wrap { margin-top: 24px; }
+
+/* ========== FLOW DIAGRAMS (shared) ========== */
+.flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; justify-content: center; }
+.flow-step {
+  padding: 14px 20px; border-radius: 12px; text-align: center;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.3s; position: relative; min-width: 120px;
+  border: 2px solid transparent;
+}
+.flow-step:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.flow-step.active { border-color: #e94560; box-shadow: 0 0 20px rgba(233,69,96,0.3); }
+.flow-step .step-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+.flow-step .step-label { color: #fff; display: block; }
+.flow-step .step-sub { color: #a0a0b0; font-size: 10px; font-weight: 400; display: block; margin-top: 3px; }
+
+.flow-arrow {
+  width: 40px; height: 2px; background: #e94560; position: relative; flex-shrink: 0;
+  margin: 0 -2px;
+}
+.flow-arrow::after {
+  content: ''; position: absolute; right: -1px; top: -5px;
+  border: 6px solid transparent; border-left: 8px solid #e94560;
+}
+.flow-arrow.animated { animation: arrowPulse 2s ease-in-out infinite; }
+@keyframes arrowPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+.step-bg-splash { background: #1a2a4e; }
+.step-bg-check { background: #2a1a3e; }
+.step-bg-welcome { background: #1a3a2e; }
+.step-bg-main { background: #3a1a2e; }
+.step-bg-screen { background: rgba(233,69,96,0.15); }
+.step-bg-service { background: rgba(255,152,0,0.15); }
+.step-bg-external { background: rgba(76,175,80,0.15); }
+.step-bg-util { background: rgba(156,39,176,0.15); }
+
+/* Branch arrows */
+.flow-branch { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.flow-branch-row { display: flex; align-items: center; gap: 0; }
+
+/* ========== POPUP / DETAIL PANEL ========== */
+.popup-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6); z-index: 2000;
+  display: none; align-items: center; justify-content: center; padding: 24px;
+}
+.popup-overlay.show { display: flex; }
+.popup {
+  background: #16213e; border-radius: 16px; padding: 28px; max-width: 600px; width: 100%;
+  border: 1px solid rgba(233,69,96,0.2); max-height: 80vh; overflow-y: auto;
+  animation: popIn 0.2s ease-out;
+}
+@keyframes popIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
+.popup h3 { color: #e94560; font-size: 18px; margin-bottom: 4px; }
+.popup .popup-path { color: #a0a0b0; font-size: 12px; margin-bottom: 12px; font-family: 'JetBrains Mono', monospace; }
+.popup pre {
+  background: #0f0f23; border-radius: 10px; padding: 16px; font-size: 12px;
+  font-family: 'JetBrains Mono', monospace; color: #c0c0d0; overflow-x: auto;
+  border: 1px solid #2a2a4e; line-height: 1.5; white-space: pre-wrap;
+}
+.popup-close {
+  position: absolute; top: 12px; right: 16px; background: none; border: none;
+  color: #a0a0b0; font-size: 20px; cursor: pointer;
+}
+.popup-close:hover { color: #e94560; }
+
+/* ========== COMPONENT TREE ========== */
+.tree { padding-left: 0; }
+.tree, .tree ul { list-style: none; }
+.tree ul { padding-left: 28px; border-left: 2px solid #2a2a4e; margin-left: 12px; }
+.tree li { position: relative; padding: 4px 0; }
+.tree-node {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border-radius: 10px; cursor: pointer; transition: all 0.2s;
+  font-size: 13px; font-weight: 600;
+}
+.tree-node:hover { transform: translateX(4px); }
+.tree-node .node-icon { font-size: 18px; }
+.tree-node .node-name { color: #fff; }
+.tree-node .node-tag {
+  font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 6px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tag-screen { background: rgba(233,69,96,0.2); color: #e94560; }
+.tag-component { background: rgba(33,150,243,0.2); color: #2196F3; }
+.tag-context { background: rgba(76,175,80,0.2); color: #4CAF50; }
+.tag-service { background: rgba(255,152,0,0.2); color: #FF9800; }
+.node-bg-screen { background: rgba(233,69,96,0.08); }
+.node-bg-component { background: rgba(33,150,243,0.08); }
+.node-bg-context { background: rgba(76,175,80,0.08); }
+
+/* ========== DATA FLOW ========== */
+.data-flow-container { position: relative; }
+.data-flow {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
+  padding: 16px 0;
+}
+.df-node {
+  padding: 10px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.3s; text-align: center; min-width: 100px;
+  border: 2px solid transparent;
+}
+.df-node:hover { transform: scale(1.05); }
+.df-node.active { border-color: #fff; }
+.df-node-user { background: #e94560; color: #fff; }
+.df-node-func { background: rgba(33,150,243,0.2); color: #2196F3; }
+.df-node-store { background: rgba(255,152,0,0.2); color: #FF9800; }
+.df-node-cache { background: rgba(156,39,176,0.2); color: #CE93D8; }
+.df-node-render { background: rgba(76,175,80,0.2); color: #4CAF50; }
+
+.df-arrow {
+  width: 28px; height: 2px; background: #555; position: relative; flex-shrink: 0;
+}
+.df-arrow::after {
+  content:''; position:absolute; right:-1px; top:-4px;
+  border: 5px solid transparent; border-left: 6px solid #555;
+}
+.df-dots {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  background: #e94560; animation: flowDot 2s linear infinite;
+}
+@keyframes flowDot { 0%{left:0;opacity:1} 100%{left:calc(100% - 6px);opacity:0.3} }
+
+.flow-label {
+  text-align: center; font-size: 11px; color: #a0a0b0; margin-top: 8px;
+  font-style: italic;
+}
+
+/* ========== SERVICE LAYER ========== */
+.layer-diagram { display: flex; flex-direction: column; gap: 20px; }
+.layer {
+  border-radius: 12px; padding: 16px;
+}
+.layer-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.layer-items { display: flex; flex-wrap: wrap; gap: 10px; }
+.layer-item {
+  padding: 10px 16px; border-radius: 10px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.3s; border: 2px solid transparent;
+}
+.layer-item:hover { transform: translateY(-2px); }
+.layer-item.highlighted { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.1); }
+
+.layer-screens { background: rgba(233,69,96,0.06); }
+.layer-screens .layer-title { color: #e94560; }
+.layer-screens .layer-item { background: rgba(233,69,96,0.15); color: #e94560; }
+
+.layer-services { background: rgba(255,152,0,0.06); }
+.layer-services .layer-title { color: #FF9800; }
+.layer-services .layer-item { background: rgba(255,152,0,0.15); color: #FF9800; }
+
+.layer-external { background: rgba(76,175,80,0.06); }
+.layer-external .layer-title { color: #4CAF50; }
+.layer-external .layer-item { background: rgba(76,175,80,0.15); color: #4CAF50; }
+
+.layer-utils { background: rgba(156,39,176,0.06); }
+.layer-utils .layer-title { color: #CE93D8; }
+.layer-utils .layer-item { background: rgba(156,39,176,0.15); color: #CE93D8; }
+
+/* Connection lines (CSS drawn) */
+.connections-legend {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px;
+  padding: 12px; background: rgba(0,0,0,0.2); border-radius: 10px;
+}
+.conn-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a0a0b0; }
+.conn-line { width: 20px; height: 3px; border-radius: 2px; }
+
+/* ========== STATE MAP ========== */
+.state-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.state-card {
+  border-radius: 12px; padding: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.state-card h4 {
+  font-size: 14px; font-weight: 700; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.state-card .state-var {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+}
+.state-var .var-name { color: #2196F3; }
+.state-var .var-type { color: #a0a0b0; margin-left: auto; font-size: 10px; }
+
+.state-local { background: rgba(33,150,243,0.08); }
+.state-local h4 { color: #2196F3; }
+.state-context { background: rgba(76,175,80,0.08); border: 1px solid rgba(76,175,80,0.15); }
+.state-context h4 { color: #4CAF50; }
+.state-async { background: rgba(255,235,59,0.06); }
+.state-async h4 { color: #FFEB3B; }
+.state-firestore { background: rgba(255,152,0,0.08); }
+.state-firestore h4 { color: #FF9800; }
+
+/* ========== NAVIGATION FLOWCHART ========== */
+.nav-flow { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.nav-flow-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.nav-node {
+  padding: 14px 22px; border-radius: 12px; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.3s; text-align: center;
+  position: relative;
+}
+.nav-node:hover { transform: scale(1.05); }
+.nav-node-splash { background: linear-gradient(135deg, #1a2a4e, #16213e); color: #fff; border: 2px solid #2196F3; }
+.nav-node-welcome { background: linear-gradient(135deg, #1a3a2e, #16213e); color: #4CAF50; border: 2px solid #4CAF50; }
+.nav-node-task { background: linear-gradient(135deg, #3a1a2e, #16213e); color: #e94560; border: 2px solid #e94560; }
+.nav-node-dash { background: linear-gradient(135deg, #2a2a1e, #16213e); color: #FF9800; border: 2px solid #FF9800; }
+.nav-node-settings { background: linear-gradient(135deg, #2a1a3e, #16213e); color: #CE93D8; border: 2px solid #9C27B0; }
+
+.nav-label {
+  position: absolute; font-size: 9px; color: #a0a0b0; white-space: nowrap;
+  background: #1a1a2e; padding: 2px 6px; border-radius: 4px;
+}
+
+.bidir-arrow {
+  display: flex; align-items: center; gap: 0;
+}
+.bidir-arrow .arr-line {
+  width: 40px; height: 2px; background: #555;
+}
+.bidir-arrow .arr-tip-l::before {
+  content: ''; display: inline-block;
+  border: 5px solid transparent; border-right: 6px solid #555;
+}
+.bidir-arrow .arr-tip-r::after {
+  content: ''; display: inline-block;
+  border: 5px solid transparent; border-left: 6px solid #555;
+}
+
+.vert-arrow {
+  width: 2px; height: 30px; background: #555; position: relative; margin: 0 auto;
+}
+.vert-arrow::after {
+  content:''; position:absolute; bottom:-1px; left:-4px;
+  border: 5px solid transparent; border-top: 6px solid #555;
+}
+
+/* ========== SEQUENCE DIAGRAM (NOTIFICATIONS) ========== */
+.seq-diagram { display: flex; flex-direction: column; gap: 0; }
+.seq-step {
+  display: flex; align-items: stretch; gap: 16px; min-height: 56px;
+}
+.seq-left {
+  width: 100px; text-align: right; padding-top: 8px; flex-shrink: 0;
+}
+.seq-left .seq-actor { font-size: 11px; font-weight: 700; color: #e94560; }
+.seq-center {
+  width: 24px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+}
+.seq-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.seq-line { width: 2px; flex: 1; }
+.seq-right {
+  flex: 1; padding: 8px 14px; border-radius: 10px;
+  font-size: 12px; margin-bottom: 8px; cursor: pointer;
+  transition: all 0.2s;
+}
+.seq-right:hover { transform: translateX(4px); }
+.seq-right .seq-title { font-weight: 700; color: #fff; margin-bottom: 2px; }
+.seq-right .seq-detail { color: #a0a0b0; font-size: 11px; }
+
+.seq-app { background: rgba(233,69,96,0.1); }
+.seq-app .seq-dot { background: #e94560; }
+.seq-app .seq-line { background: #e94560; opacity: 0.3; }
+
+.seq-system { background: rgba(33,150,243,0.1); }
+.seq-system .seq-dot { background: #2196F3; }
+.seq-system .seq-line { background: #2196F3; opacity: 0.3; }
+
+.seq-user { background: rgba(76,175,80,0.1); }
+.seq-user .seq-dot { background: #4CAF50; }
+.seq-user .seq-line { background: #4CAF50; opacity: 0.3; }
+
+.seq-guard { background: rgba(255,152,0,0.1); }
+.seq-guard .seq-dot { background: #FF9800; }
+.seq-guard .seq-line { background: #FF9800; opacity: 0.3; }
+
+/* ========== BUILD PIPELINE ========== */
+.pipeline { display: flex; flex-wrap: wrap; gap: 0; align-items: center; justify-content: center; }
+.pipe-step {
+  padding: 16px 20px; border-radius: 12px; text-align: center;
+  font-size: 12px; font-weight: 600; min-width: 110px;
+  transition: all 0.3s; cursor: pointer;
+}
+.pipe-step:hover { transform: translateY(-3px); }
+.pipe-step .pipe-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+.pipe-step .pipe-label { color: #fff; display: block; }
+.pipe-step .pipe-detail { color: #a0a0b0; font-size: 10px; display: block; margin-top: 3px; }
+.pipe-arrow { width: 30px; height: 2px; background: #555; position: relative; flex-shrink: 0; }
+.pipe-arrow::after { content:''; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:6px solid #555; }
+
+.pipe-src { background: rgba(33,150,243,0.15); }
+.pipe-build { background: rgba(255,152,0,0.15); }
+.pipe-cloud { background: rgba(156,39,176,0.15); }
+.pipe-out { background: rgba(76,175,80,0.15); }
+
+.info-callout {
+  background: rgba(255,152,0,0.1); border-left: 3px solid #FF9800;
+  border-radius: 0 10px 10px 0; padding: 12px 16px; margin-top: 20px;
+  font-size: 12px; color: #d0d0e0;
+}
+.info-callout strong { color: #FF9800; }
+
+/* ========== BUILDING BLOCKS (STEP BY STEP) ========== */
+.steps-controls {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px; justify-content: center;
+}
+.step-btn {
+  padding: 8px 20px; border-radius: 10px; border: none;
+  font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.step-btn-primary { background: #e94560; color: #fff; }
+.step-btn-primary:hover { background: #d13a55; }
+.step-btn-secondary { background: #16213e; color: #a0a0b0; border: 1px solid #2a2a4e; }
+.step-btn-secondary:hover { color: #fff; border-color: #e94560; }
+.step-indicator { color: #a0a0b0; font-size: 13px; font-weight: 600; }
+.step-progress {
+  height: 4px; background: #0f0f23; border-radius: 2px; flex: 1; max-width: 300px;
+}
+.step-progress-fill {
+  height: 100%; background: #e94560; border-radius: 2px; transition: width 0.3s;
+}
+.step-content {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.step-panel {
+  border-radius: 12px; padding: 16px;
+}
+.step-panel h4 {
+  font-size: 13px; font-weight: 700; margin-bottom: 12px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.step-before { background: rgba(244,67,54,0.06); }
+.step-before h4 { color: #F44336; }
+.step-after { background: rgba(76,175,80,0.06); }
+.step-after h4 { color: #4CAF50; }
+.file-tree { font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.8; }
+.file-tree .dir { color: #2196F3; }
+.file-tree .file { color: #a0a0b0; }
+.file-tree .new-file { color: #4CAF50; font-weight: 700; }
+.file-tree .highlight { background: rgba(76,175,80,0.15); border-radius: 4px; padding: 0 4px; }
+.step-desc {
+  grid-column: 1 / -1; padding: 14px 18px; border-radius: 10px;
+  background: rgba(33,150,243,0.08); font-size: 13px; color: #c0c0d0;
+  border-left: 3px solid #2196F3;
+}
+
+/* ========== LAYER TOGGLE ========== */
+.layer-toggle {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 24px;
+}
+.toggle-btn {
+  padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; border: 2px solid;
+  font-family: 'Inter', sans-serif; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.toggle-btn.on { opacity: 1; }
+.toggle-btn.off { opacity: 0.35; }
+.toggle-screens { border-color: #e94560; background: rgba(233,69,96,0.15); color: #e94560; }
+.toggle-services { border-color: #FF9800; background: rgba(255,152,0,0.15); color: #FF9800; }
+.toggle-utils { border-color: #CE93D8; background: rgba(156,39,176,0.15); color: #CE93D8; }
+.toggle-external { border-color: #4CAF50; background: rgba(76,175,80,0.15); color: #4CAF50; }
+
+/* ========== FLOATING TOC ========== */
+.floating-toc {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+  z-index: 999; display: flex; flex-direction: column; gap: 6px;
+}
+.toc-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #2a2a4e;
+  cursor: pointer; transition: all 0.3s; position: relative;
+}
+.toc-dot:hover, .toc-dot.active { background: #e94560; transform: scale(1.3); }
+.toc-dot .toc-label {
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; font-size: 10px; font-weight: 600; color: #a0a0b0;
+  background: #16213e; padding: 4px 10px; border-radius: 6px;
+  opacity: 0; transition: opacity 0.2s; pointer-events: none;
+  border: 1px solid #2a2a4e;
+}
+.toc-dot:hover .toc-label { opacity: 1; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 32px; }
+  .section-title { font-size: 24px; }
+  .step-content { grid-template-columns: 1fr; }
+  .floating-toc { display: none; }
+  .diagram-wrap { padding: 16px; }
+  .flow { gap: 4px; }
+  .flow-arrow { width: 24px; }
+  .nav { padding: 0 12px; }
+  .nav-link { padding: 6px 10px; font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav">
+  <div class="nav-brand">Ductivity</div>
+  <div class="nav-links">
+    <a href="#launch" class="nav-link">Launch Flow</a>
+    <a href="#tree" class="nav-link">Component Tree</a>
+    <a href="#dataflow" class="nav-link">Data Flow</a>
+    <a href="#services" class="nav-link">Service Layer</a>
+    <a href="#state" class="nav-link">State Map</a>
+    <a href="#navigation" class="nav-link">Navigation</a>
+    <a href="#notifications" class="nav-link">Notifications</a>
+    <a href="#build" class="nav-link">Build Pipeline</a>
+    <a href="#blocks" class="nav-link">Building Blocks</a>
+  </div>
+</nav>
+
+<!-- ===== FLOATING TOC ===== -->
+<div class="floating-toc">
+  <a href="#launch" class="toc-dot" data-section="launch"><span class="toc-label">Launch Flow</span></a>
+  <a href="#tree" class="toc-dot" data-section="tree"><span class="toc-label">Component Tree</span></a>
+  <a href="#dataflow" class="toc-dot" data-section="dataflow"><span class="toc-label">Data Flow</span></a>
+  <a href="#services" class="toc-dot" data-section="services"><span class="toc-label">Service Layer</span></a>
+  <a href="#state" class="toc-dot" data-section="state"><span class="toc-label">State Map</span></a>
+  <a href="#navigation" class="toc-dot" data-section="navigation"><span class="toc-label">Navigation</span></a>
+  <a href="#notifications" class="toc-dot" data-section="notifications"><span class="toc-label">Notifications</span></a>
+  <a href="#build" class="toc-dot" data-section="build"><span class="toc-label">Build Pipeline</span></a>
+  <a href="#blocks" class="toc-dot" data-section="blocks"><span class="toc-label">Building Blocks</span></a>
+</div>
+
+<!-- ===== POPUP ===== -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
+  <div class="popup" onclick="event.stopPropagation()">
+    <h3 id="popupTitle"></h3>
+    <div class="popup-path" id="popupPath"></div>
+    <pre id="popupCode"></pre>
+  </div>
+</div>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <span class="hero-emoji">&#127919;</span>
+  <h1>Ductivity</h1>
+  <p>Architecture Guide &mdash; A visual deep-dive into how the app's components connect and interact</p>
+  <div class="hero-badge">React Native + Expo + Firebase</div>
+</section>
+
+<!-- ===== 1. APP LAUNCH FLOW ===== -->
+<section class="section" id="launch">
+  <div class="section-header">
+    <div class="section-num">Section 01</div>
+    <h2 class="section-title">App Launch Flow</h2>
+    <p class="section-desc">The step-by-step sequence from app start to the main interface</p>
+  </div>
+  <div class="diagram-wrap">
+    <div class="flow">
+      <div class="flow-step step-bg-splash" onclick="showPopup('App Start','App.tsx','// App() mounts\nconst [screen, setScreen] = useState&lt;AppScreen&gt;(\'splash\');\n\n// First render shows SplashScreen\nif (screen === \'splash\') {\n  return &lt;SplashScreen onFinish={handleSplashFinish} /&gt;;\n}')">
+        <span class="step-icon">&#128241;</span>
+        <span class="step-label">App Start</span>
+        <span class="step-sub">App.tsx mounts</span>
+      </div>
+      <div class="flow-arrow animated"></div>
+      <div class="flow-step step-bg-splash" onclick="showPopup('SplashScreen','src/screens/SplashScreen.tsx','// Logo springs in with rotation\nAnimated.parallel([\n  Animated.spring(logoScale, { toValue: 1, ... }),\n  Animated.spring(logoRotate, { toValue: 0, ... }),\n]).start();\n\n// After 2.5s, fade out and call onFinish\nsetTimeout(() => {\n  Animated.timing(screenOpacity, {\n    toValue: 0, duration: 400\n  }).start(() => onFinish());\n}, 2500);')">
+        <span class="step-icon">&#127919;</span>
+        <span class="step-label">SplashScreen</span>
+        <span class="step-sub">2.5s animation</span>
+      </div>
+      <div class="flow-arrow animated"></div>
+      <div class="flow-step step-bg-check" onclick="showPopup('Check AsyncStorage','App.tsx','const handleSplashFinish = async () => {\n  const hasSeenWelcome = await AsyncStorage.getItem(\'hasSeenWelcome\');\n  setScreen(\n    hasSeenWelcome === \'true\' ? \'main\' : \'welcome\'\n  );\n};')">
+        <span class="step-icon">&#128269;</span>
+        <span class="step-label">Check Storage</span>
+        <span class="step-sub">AsyncStorage lookup</span>
+      </div>
+      <div class="flow-arrow animated"></div>
+      <div class="flow-branch">
+        <div class="flow-step step-bg-welcome" onclick="showPopup('WelcomeScreen','src/screens/WelcomeScreen.tsx','// First-time user: show onboarding\n// Name input (&gt;= 2 chars) + features list\n// On &quot;Let\'s Go&quot;:\nawait setUserName(name.trim());\nawait AsyncStorage.setItem(\'hasSeenWelcome\', \'true\');\n\n// Fade out, then call onComplete()\nAnimated.timing(screenOpacity, {\n  toValue: 0, duration: 300\n}).start(() => onComplete());')">
+          <span class="step-icon">&#128075;</span>
+          <span class="step-label">WelcomeScreen</span>
+          <span class="step-sub">First launch only</span>
+        </div>
+        <div style="color:#a0a0b0;font-size:11px;font-weight:600;">OR</div>
+        <div class="flow-step step-bg-main" onclick="showPopup('Main Tabs','App.tsx','// Returning user: straight to Tab.Navigator\n&lt;Tab.Navigator&gt;\n  &lt;Tab.Screen name=&quot;Task&quot; component={TaskScreen} /&gt;\n  &lt;Tab.Screen name=&quot;Dashboard&quot; component={DashboardScreen} /&gt;\n  &lt;Tab.Screen name=&quot;Settings&quot; component={SettingsScreen} /&gt;\n&lt;/Tab.Navigator&gt;')">
+          <span class="step-icon">&#128202;</span>
+          <span class="step-label">Main Tabs</span>
+          <span class="step-sub">Returning user</span>
+        </div>
+      </div>
+    </div>
+    <div class="flow-label">Click any step to see the underlying code</div>
+  </div>
+  <div class="diagram-wrap" style="margin-top:16px">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px;">Parallel: Notification Setup (on mount)</div>
+    <div class="flow">
+      <div class="flow-step step-bg-service" onclick="showPopup('Register Notifications','src/services/notificationService.ts','export async function registerForPushNotifications(): Promise&lt;boolean&gt; {\n  if (isExpoGo) return false; // Guard\n  if (!Device.isDevice) return false;\n  const { status } = await Notifications.getPermissionsAsync();\n  // ... request if needed\n  // Create Android channel\n  if (Platform.OS === \'android\') {\n    await Notifications.setNotificationChannelAsync(...);\n  }\n  return true;\n}')">
+        <span class="step-icon">&#128276;</span>
+        <span class="step-label">Register</span>
+        <span class="step-sub">Request permissions</span>
+      </div>
+      <div class="flow-arrow animated"></div>
+      <div class="flow-step step-bg-service" onclick="showPopup('Schedule Reminders','src/services/notificationService.ts','export async function scheduleActivityReminder() {\n  await Notifications.cancelAllScheduledNotificationsAsync();\n  const settings = await getSettings();\n  const intervalMs = getFrequencySeconds(...) * 1000;\n  // Schedule for next 12 hours\n  for (let offset = intervalMs; offset &lt;= totalMs; ...) {\n    const triggerDate = new Date(now + offset);\n    if (isTimeBlocked(triggerDate, settings)) continue;\n    await Notifications.scheduleNotificationAsync({\n      trigger: { type: DATE, date: triggerDate }\n    });\n  }\n}')">
+        <span class="step-icon">&#9200;</span>
+        <span class="step-label">Schedule</span>
+        <span class="step-sub">Next 12h reminders</span>
+      </div>
+      <div class="flow-arrow animated"></div>
+      <div class="flow-step step-bg-service" onclick="showPopup('Test Notification','src/services/notificationService.ts','export async function sendTestNotification() {\n  if (isExpoGo) return;\n  await Notifications.scheduleNotificationAsync({\n    content: {\n      title: \'Ductivity Test\',\n      body: \'Notifications are working!\'\n    },\n    trigger: { type: TIME_INTERVAL, seconds: 2 }\n  });\n}')">
+        <span class="step-icon">&#9989;</span>
+        <span class="step-label">Test Fire</span>
+        <span class="step-sub">2s delay</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 2. COMPONENT TREE ===== -->
+<section class="section" id="tree">
+  <div class="section-header">
+    <div class="section-num">Section 02</div>
+    <h2 class="section-title">Component Tree</h2>
+    <p class="section-desc">The full component hierarchy with contexts, screens, and child components</p>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px;flex-wrap:wrap">
+    <span style="font-size:11px;font-weight:600;color:#e94560;background:rgba(233,69,96,0.15);padding:4px 12px;border-radius:8px;">&#9679; Screen</span>
+    <span style="font-size:11px;font-weight:600;color:#2196F3;background:rgba(33,150,243,0.15);padding:4px 12px;border-radius:8px;">&#9679; Component</span>
+    <span style="font-size:11px;font-weight:600;color:#4CAF50;background:rgba(76,175,80,0.15);padding:4px 12px;border-radius:8px;">&#9679; Context</span>
+    <span style="font-size:11px;font-weight:600;color:#FF9800;background:rgba(255,152,0,0.15);padding:4px 12px;border-radius:8px;">&#9679; Service</span>
+  </div>
+  <div class="diagram-wrap">
+    <ul class="tree">
+      <li>
+        <span class="tree-node node-bg-context" onclick="showPopup('App (Root)','App.tsx','export default function App() {\n  const [screen, setScreen] = useState&lt;AppScreen&gt;(\'splash\');\n  const [notificationTrigger, setNotificationTrigger] = useState(0);\n  // Wraps everything in UserProvider + NotificationContext\n  return (\n    &lt;UserProvider&gt;\n      &lt;NotificationContext.Provider value={{ notificationTrigger }}&gt;\n        ...\n      &lt;/NotificationContext.Provider&gt;\n    &lt;/UserProvider&gt;\n  );\n}')">
+          <span class="node-icon">&#127919;</span>
+          <span class="node-name">App</span>
+          <span class="node-tag tag-context">UserProvider + NotificationContext</span>
+        </span>
+        <ul>
+          <li>
+            <span class="tree-node node-bg-screen" onclick="showPopup('SplashScreen','src/screens/SplashScreen.tsx','interface Props {\n  onFinish: () =&gt; void;\n}\n\n// Receives onFinish callback\n// Renders: Logo (animated), Title, Subtitle, 3 color dots\n// After 2.5s fades out and calls onFinish()')">
+              <span class="node-icon">&#10024;</span>
+              <span class="node-name">SplashScreen</span>
+              <span class="node-tag tag-screen">Screen</span>
+            </span>
+          </li>
+          <li>
+            <span class="tree-node node-bg-screen" onclick="showPopup('WelcomeScreen','src/screens/WelcomeScreen.tsx','interface Props {\n  onComplete: () =&gt; void;\n}\n\n// Receives onComplete callback\n// Uses: useUser() context\n// Renders: Logo, branding, feature list,\n//          name TextInput, &quot;Let\'s Go&quot; button\n// Saves name to UserContext + AsyncStorage')">
+              <span class="node-icon">&#128075;</span>
+              <span class="node-name">WelcomeScreen</span>
+              <span class="node-tag tag-screen">Screen</span>
+            </span>
+          </li>
+          <li>
+            <span class="tree-node" style="background:rgba(255,255,255,0.03)" onclick="showPopup('NavigationContainer','App.tsx','&lt;NavigationContainer ref={navigationRef}&gt;\n  &lt;Tab.Navigator\n    screenOptions={{\n      headerShown: false,\n      tabBarActiveTintColor: \'#e94560\',\n      // ...\n    }}\n    screenListeners={{\n      tabPress: () =&gt; hapticLight(),\n    }}\n  &gt;\n    ...\n  &lt;/Tab.Navigator&gt;\n&lt;/NavigationContainer&gt;')">
+              <span class="node-icon">&#128506;</span>
+              <span class="node-name">Tab.Navigator</span>
+              <span class="node-tag" style="background:rgba(255,255,255,0.1);color:#a0a0b0;">Navigation</span>
+            </span>
+            <ul>
+              <li>
+                <span class="tree-node node-bg-screen" onclick="showPopup('TaskScreen','src/screens/TaskScreen.tsx','// Uses: useUser(), useNotificationTrigger(), useIsFocused()\n// State: lastLogged, loading, loadingId, toast,\n//        toastVisible, showReminder, lastDocId,\n//        lastLogTime, cooldownEnd, cooldownText\n// Renders:\n//   - Reminder Banner (animated pulse)\n//   - Toast component (with Undo)\n//   - Header with user name\n//   - Cooldown indicator\n//   - FlatList of ActivityCards (8 cards, 2 columns)')">
+                  <span class="node-icon">&#127919;</span>
+                  <span class="node-name">TaskScreen</span>
+                  <span class="node-tag tag-screen">Screen</span>
+                </span>
+                <ul>
+                  <li>
+                    <span class="tree-node node-bg-component" onclick="showPopup('ActivityCard','src/screens/TaskScreen.tsx','const ActivityCard = React.memo(({ activity, isActive, isLoading, onPress }) =&gt; (\n  &lt;TouchableOpacity\n    style={[styles.activityCard, { borderLeftColor: CATEGORY_COLORS[activity.category] }]}\n    onPress={onPress}\n  &gt;\n    &lt;Text&gt;{activity.emoji}&lt;/Text&gt;\n    &lt;Text&gt;{activity.name}&lt;/Text&gt;\n    &lt;View&gt;{activity.category}&lt;/View&gt;\n  &lt;/TouchableOpacity&gt;\n));\n\n// Props: activity, isActive, isLoading, onPress')">
+                      <span class="node-icon">&#127183;</span>
+                      <span class="node-name">ActivityCard x8</span>
+                      <span class="node-tag tag-component">Component</span>
+                    </span>
+                  </li>
+                  <li>
+                    <span class="tree-node node-bg-component" onclick="showPopup('Toast','src/components/Toast.tsx','interface ToastProps {\n  visible: boolean;\n  emoji: string;\n  activityName: string;\n  category: CategoryType;\n  time: string;\n  onHide: () =&gt; void;\n  onUndo?: () =&gt; void;\n}\n\n// Slides down from top, auto-hides after 4s\n// Has Undo button that calls deleteActivity()')">
+                      <span class="node-icon">&#128172;</span>
+                      <span class="node-name">Toast</span>
+                      <span class="node-tag tag-component">Component</span>
+                    </span>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <span class="tree-node node-bg-screen" onclick="showPopup('DashboardScreen','src/screens/DashboardScreen.tsx','// Uses: useUser(), useFadeInUp()\n// State: activeFilter, activeChart, logs, refreshing, loading\n// Renders:\n//   - Header with user name\n//   - Time filter chips (3H, 6H, 12H, 24H, Today, Week, Month)\n//   - Chart type selector (Pie, Bar, Timeline, Progress)\n//   - SkeletonLoader (while loading)\n//   - ActivityChart\n//   - WordOfTheDay')">
+                  <span class="node-icon">&#128202;</span>
+                  <span class="node-name">DashboardScreen</span>
+                  <span class="node-tag tag-screen">Screen</span>
+                </span>
+                <ul>
+                  <li>
+                    <span class="tree-node node-bg-component" onclick="showPopup('ActivityChart','src/components/ActivityChart.tsx','interface Props {\n  logs: ActivityLog[];\n  chartType: ChartType; // \'pie\' | \'bar\' | \'timeline\' | \'progress\'\n}\n\n// Memoized aggregation: categoryCounts, activityCounts,\n//   productivePercent, sortedActivities\n// Renders:\n//   - Productivity Score card\n//   - One of: PieChart, BarChart, Timeline view, Progress bars\n//   - Empty state with bobbing emoji')">
+                      <span class="node-icon">&#128200;</span>
+                      <span class="node-name">ActivityChart</span>
+                      <span class="node-tag tag-component">Component</span>
+                    </span>
+                  </li>
+                  <li>
+                    <span class="tree-node node-bg-component" onclick="showPopup('SkeletonLoader','src/components/SkeletonLoader.tsx','interface Props {\n  width: number | string;\n  height: number;\n  borderRadius?: number;\n  style?: ViewStyle;\n}\n\n// Pulsing placeholder rectangle\n// Opacity oscillates 0.3 to 0.7 in a loop\n// React.memo for performance')">
+                      <span class="node-icon">&#9632;</span>
+                      <span class="node-name">SkeletonLoader</span>
+                      <span class="node-tag tag-component">Component</span>
+                    </span>
+                  </li>
+                  <li>
+                    <span class="tree-node node-bg-component" onclick="showPopup('WordOfTheDay','src/components/WordOfTheDay.tsx','// 31 vocabulary words, rotates daily\n// Based on day-of-year modulo\n// Shows: word, pronunciation, part of speech,\n//        meaning, usage example\n// React.memo for performance')">
+                      <span class="node-icon">&#128214;</span>
+                      <span class="node-name">WordOfTheDay</span>
+                      <span class="node-tag tag-component">Component</span>
+                    </span>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <span class="tree-node node-bg-screen" onclick="showPopup('SettingsScreen','src/screens/SettingsScreen.tsx','// Uses: useUser(), useNavigation(), useFadeInUp()\n// State: settings (AppSettings), loaded\n// Renders:\n//   - Notification Frequency grid\n//   - Sleep Mode toggle + time pickers\n//   - Do Not Disturb toggle + time pickers\n//   - Save &amp; Apply button\n//   - Clear Data section (3 destructive actions)')">
+                  <span class="node-icon">&#9881;</span>
+                  <span class="node-name">SettingsScreen</span>
+                  <span class="node-tag tag-screen">Screen</span>
+                </span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <div class="flow-label">Click any node to see its props and details</div>
+  </div>
+</section>
+
+<!-- ===== 3. DATA FLOW ===== -->
+<section class="section" id="dataflow">
+  <div class="section-header">
+    <div class="section-num">Section 03</div>
+    <h2 class="section-title">Data Flow Diagram</h2>
+    <p class="section-desc">How data moves when a user logs an activity and when it appears on the Dashboard</p>
+  </div>
+  <div class="diagram-wrap">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;">Log Activity Flow</div>
+    <div class="data-flow">
+      <div class="df-node df-node-user" onclick="showPopup('User Taps Card','src/screens/TaskScreen.tsx','const handleActivityPress = async (activity) =&gt; {\n  if (loading) return;\n  if (cooldownEnd &gt; Date.now()) {\n    Alert.alert(\'Already Logged\', ...);\n    return;\n  }\n  hapticLight();\n  setLoading(true);\n  ...\n}')">User Taps<br>Activity Card</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-func" onclick="showPopup('logActivity()','src/services/activityService.ts','export async function logActivity(\n  activityName: string,\n  category: CategoryType\n): Promise&lt;string&gt; {\n  clearCache(); // Invalidate dashboard cache\n  const docRef = await addDoc(\n    collection(db, \'activities\'),\n    { userId, activity: activityName, category, timestamp: Timestamp.now() }\n  );\n  return docRef.id;\n}')">logActivity()</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-cache" onclick="showPopup('clearCache()','src/services/queryCache.ts','export function clearCache(): void {\n  cache.clear();\n}\n\n// Called BEFORE writing to Firestore\n// Ensures Dashboard fetches fresh data next time')">clearCache()</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-store" onclick="showPopup('Firestore Write','src/config/firebase.ts','// Writes to: activities collection\n// Document shape:\n// {\n//   userId: \'default_user\',\n//   activity: \'Personal Work\',\n//   category: \'productive\',\n//   timestamp: Timestamp.now()\n// }')">Firestore<br>Write</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-render" onclick="showPopup('Toast + Haptic','src/screens/TaskScreen.tsx','hapticSuccess();\nsetToast({\n  emoji: activity.emoji,\n  activityName: activity.name,\n  category: activity.category,\n  time: new Date().toLocaleTimeString(),\n});\nsetToastVisible(true);\n\n// Also starts cooldown timer')">Toast + Haptic<br>Feedback</div>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;">Dashboard Read Flow</div>
+    <div class="data-flow">
+      <div class="df-node df-node-user" onclick="showPopup('Dashboard Opens','src/screens/DashboardScreen.tsx','const fetchData = useCallback(async () =&gt; {\n  const data = await getActivities(activeFilter);\n  setLogs(data);\n}, [activeFilter]);\n\nuseEffect(() =&gt; {\n  setLoading(true);\n  fetchData();\n}, [fetchData]);')">Dashboard<br>Opens / Refreshes</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-func" onclick="showPopup('getActivities()','src/services/activityService.ts','export async function getActivities(filter: TimeFilter) {\n  const cacheKey = `activities_${filter}`;\n  const cached = getCached(cacheKey);\n  if (cached) return cached; // Cache HIT\n\n  const startDate = getFilterStartDate(filter);\n  const q = query(\n    collection(db, \'activities\'),\n    where(\'timestamp\', \'&gt;=\', Timestamp.fromDate(startDate)),\n    orderBy(\'timestamp\', \'desc\')\n  );\n  const snapshot = await getDocs(q);\n  // ... map results\n  setCache(cacheKey, results);\n  return results;\n}')">getActivities()</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-cache" onclick="showPopup('queryCache','src/services/queryCache.ts','const CACHE_TTL_MS = 30_000; // 30 seconds\n\nfunction getCached(key) {\n  const entry = cache.get(key);\n  if (!entry) return null;\n  if (Date.now() - entry.timestamp &gt; CACHE_TTL_MS) {\n    cache.delete(key);\n    return null; // Expired\n  }\n  return entry.data; // Cache HIT\n}')">queryCache<br>Check</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-store">Firestore<br>or Cache</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-render" onclick="showPopup('ActivityChart','src/components/ActivityChart.tsx','// Memoized aggregation via useMemo\nconst { categoryCounts, activityCounts, totalLogs,\n        productiveCount, productivePercent,\n        sortedActivities } = useMemo(() =&gt; {\n  // Reduce logs into category/activity counts\n  // Calculate productive percentage\n  // Sort top 6 activities for bar chart\n}, [logs]);')">ActivityChart<br>Renders</div>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;">Undo Flow</div>
+    <div class="data-flow">
+      <div class="df-node df-node-user">User Taps<br>Undo</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-func" onclick="showPopup('deleteActivity()','src/services/activityService.ts','export async function deleteActivity(docId: string) {\n  clearCache(); // Invalidate cache\n  await deleteDoc(doc(db, COLLECTION_NAME, docId));\n}')">deleteActivity()</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-cache">clearCache()</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-store">Firestore<br>Delete</div>
+      <div class="df-arrow" style="position:relative"><div class="df-dots"></div></div>
+      <div class="df-node df-node-render" onclick="showPopup('Reset State','src/screens/TaskScreen.tsx','const handleUndo = async () =&gt; {\n  if (!lastDocId) return;\n  await deleteActivity(lastDocId);\n  setLastDocId(null);\n  setLastLogged(null);\n  setLastLogTime(0);\n  setCooldownEnd(0);\n  setCooldownText(\'\');\n  hapticLight();\n};')">Reset State<br>+ Haptic</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 4. SERVICE LAYER ===== -->
+<section class="section" id="services">
+  <div class="section-header">
+    <div class="section-num">Section 04</div>
+    <h2 class="section-title">Service Layer Architecture</h2>
+    <p class="section-desc">How screens, services, external systems, and utilities connect</p>
+  </div>
+  <div class="layer-toggle">
+    <button class="toggle-btn toggle-screens on" onclick="toggleLayer('screens',this)">Screens</button>
+    <button class="toggle-btn toggle-services on" onclick="toggleLayer('services',this)">Services</button>
+    <button class="toggle-btn toggle-utils on" onclick="toggleLayer('utils',this)">Utilities</button>
+    <button class="toggle-btn toggle-external on" onclick="toggleLayer('external',this)">External</button>
+  </div>
+  <div class="diagram-wrap">
+    <div class="layer-diagram">
+      <div class="layer layer-screens" data-layer="screens">
+        <div class="layer-title">Screens (UI Layer)</div>
+        <div class="layer-items">
+          <div class="layer-item" data-uses="activityService,settingsService,notificationService,queryCache" onmouseenter="highlightConnections(this)" onmouseleave="clearHighlights()">&#127919; TaskScreen</div>
+          <div class="layer-item" data-uses="activityService,queryCache" onmouseenter="highlightConnections(this)" onmouseleave="clearHighlights()">&#128202; DashboardScreen</div>
+          <div class="layer-item" data-uses="settingsService,notificationService" onmouseenter="highlightConnections(this)" onmouseleave="clearHighlights()">&#9881; SettingsScreen</div>
+        </div>
+      </div>
+      <div class="layer layer-services" data-layer="services">
+        <div class="layer-title">Services (Business Logic)</div>
+        <div class="layer-items">
+          <div class="layer-item" id="svc-activityService" data-svc="activityService">activityService</div>
+          <div class="layer-item" id="svc-notificationService" data-svc="notificationService">notificationService</div>
+          <div class="layer-item" id="svc-settingsService" data-svc="settingsService">settingsService</div>
+          <div class="layer-item" id="svc-queryCache" data-svc="queryCache">queryCache</div>
+        </div>
+      </div>
+      <div class="layer layer-external" data-layer="external">
+        <div class="layer-title">External (Data Stores &amp; APIs)</div>
+        <div class="layer-items">
+          <div class="layer-item">&#128293; Firebase Firestore</div>
+          <div class="layer-item">&#128190; AsyncStorage</div>
+          <div class="layer-item">&#128276; expo-notifications</div>
+        </div>
+      </div>
+      <div class="layer layer-utils" data-layer="utils">
+        <div class="layer-title">Utilities (Shared Helpers)</div>
+        <div class="layer-items">
+          <div class="layer-item">&#128243; haptics</div>
+          <div class="layer-item">&#9200; timeUtils</div>
+          <div class="layer-item">&#10024; animations</div>
+          <div class="layer-item">&#128290; constants</div>
+        </div>
+      </div>
+    </div>
+    <div class="connections-legend">
+      <div class="conn-item"><div class="conn-line" style="background:#e94560"></div> TaskScreen uses</div>
+      <div class="conn-item"><div class="conn-line" style="background:#FF9800"></div> DashboardScreen uses</div>
+      <div class="conn-item"><div class="conn-line" style="background:#CE93D8"></div> SettingsScreen uses</div>
+    </div>
+    <div class="flow-label">Hover a screen to see which services it depends on</div>
+  </div>
+</section>
+
+<!-- ===== 5. STATE MAP ===== -->
+<section class="section" id="state">
+  <div class="section-header">
+    <div class="section-num">Section 05</div>
+    <h2 class="section-title">State Management Map</h2>
+    <p class="section-desc">Every piece of state in the app, organized by scope and storage</p>
+  </div>
+  <div class="diagram-wrap">
+    <div class="state-grid">
+      <!-- Context (global) -->
+      <div class="state-card state-context" style="grid-column: 1 / -1;">
+        <h4>&#127760; Global Context</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;">
+          <div>
+            <div style="font-size:11px;color:#4CAF50;font-weight:700;margin-bottom:6px;">UserContext (UserProvider)</div>
+            <div class="state-var"><span class="var-name">userName</span><span class="var-type">string</span></div>
+            <div class="state-var"><span class="var-name">setUserName</span><span class="var-type">(name) => Promise</span></div>
+            <div class="state-var"><span class="var-name">isLoading</span><span class="var-type">boolean</span></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#4CAF50;font-weight:700;margin-bottom:6px;">NotificationContext (App.tsx)</div>
+            <div class="state-var"><span class="var-name">notificationTrigger</span><span class="var-type">number</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TaskScreen -->
+      <div class="state-card state-local">
+        <h4>&#127919; TaskScreen</h4>
+        <div class="state-var"><span class="var-name">lastLogged</span><span class="var-type">string | null</span></div>
+        <div class="state-var"><span class="var-name">loading</span><span class="var-type">boolean</span></div>
+        <div class="state-var"><span class="var-name">loadingId</span><span class="var-type">string | null</span></div>
+        <div class="state-var"><span class="var-name">toast</span><span class="var-type">ToastData | null</span></div>
+        <div class="state-var"><span class="var-name">toastVisible</span><span class="var-type">boolean</span></div>
+        <div class="state-var"><span class="var-name">showReminder</span><span class="var-type">boolean</span></div>
+        <div class="state-var"><span class="var-name">lastDocId</span><span class="var-type">string | null</span></div>
+        <div class="state-var"><span class="var-name">lastLogTime</span><span class="var-type">number</span></div>
+        <div class="state-var"><span class="var-name">cooldownEnd</span><span class="var-type">number</span></div>
+        <div class="state-var"><span class="var-name">cooldownText</span><span class="var-type">string</span></div>
+      </div>
+
+      <!-- DashboardScreen -->
+      <div class="state-card state-local">
+        <h4>&#128202; DashboardScreen</h4>
+        <div class="state-var"><span class="var-name">activeFilter</span><span class="var-type">TimeFilter</span></div>
+        <div class="state-var"><span class="var-name">activeChart</span><span class="var-type">ChartType</span></div>
+        <div class="state-var"><span class="var-name">logs</span><span class="var-type">ActivityLog[]</span></div>
+        <div class="state-var"><span class="var-name">refreshing</span><span class="var-type">boolean</span></div>
+        <div class="state-var"><span class="var-name">loading</span><span class="var-type">boolean</span></div>
+      </div>
+
+      <!-- SettingsScreen -->
+      <div class="state-card state-local">
+        <h4>&#9881; SettingsScreen</h4>
+        <div class="state-var"><span class="var-name">settings</span><span class="var-type">AppSettings</span></div>
+        <div class="state-var"><span class="var-name">loaded</span><span class="var-type">boolean</span></div>
+      </div>
+
+      <!-- AsyncStorage -->
+      <div class="state-card state-async">
+        <h4>&#128190; AsyncStorage Keys</h4>
+        <div class="state-var"><span class="var-name">@ductivity_userName</span><span class="var-type">string</span></div>
+        <div class="state-var"><span class="var-name">@ductivity_settings</span><span class="var-type">JSON (AppSettings)</span></div>
+        <div class="state-var"><span class="var-name">hasSeenWelcome</span><span class="var-type">"true" | null</span></div>
+      </div>
+
+      <!-- Firestore -->
+      <div class="state-card state-firestore">
+        <h4>&#128293; Firestore Schema</h4>
+        <div style="font-size:11px;color:#FF9800;font-weight:700;margin-bottom:6px;">Collection: "activities"</div>
+        <div class="state-var"><span class="var-name">userId</span><span class="var-type">string ("default_user")</span></div>
+        <div class="state-var"><span class="var-name">activity</span><span class="var-type">string</span></div>
+        <div class="state-var"><span class="var-name">category</span><span class="var-type">CategoryType</span></div>
+        <div class="state-var"><span class="var-name">timestamp</span><span class="var-type">Timestamp</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 6. NAVIGATION ===== -->
+<section class="section" id="navigation">
+  <div class="section-header">
+    <div class="section-num">Section 06</div>
+    <h2 class="section-title">Navigation &amp; User Journey</h2>
+    <p class="section-desc">All possible paths through the app and special navigation triggers</p>
+  </div>
+  <div class="diagram-wrap">
+    <div class="nav-flow">
+      <!-- Row 1: Splash -->
+      <div class="nav-flow-row">
+        <div class="nav-node nav-node-splash">&#10024; Splash</div>
+      </div>
+      <div class="vert-arrow"></div>
+      <!-- Row 2: Branch -->
+      <div class="nav-flow-row">
+        <div class="nav-node nav-node-welcome">&#128075; Welcome<div style="font-size:10px;color:rgba(76,175,80,0.7);margin-top:4px;">First launch only</div></div>
+      </div>
+      <div class="vert-arrow"></div>
+      <!-- Row 3: Main tabs -->
+      <div class="nav-flow-row">
+        <div class="nav-node nav-node-task" style="min-width:130px;">
+          &#127919; Task
+          <div style="font-size:10px;color:rgba(233,69,96,0.7);margin-top:4px;">Log Activity tab</div>
+        </div>
+        <div class="bidir-arrow">
+          <span class="arr-tip-l"></span>
+          <div class="arr-line"></div>
+          <span class="arr-tip-r"></span>
+        </div>
+        <div class="nav-node nav-node-dash" style="min-width:130px;">
+          &#128202; Dashboard
+          <div style="font-size:10px;color:rgba(255,152,0,0.7);margin-top:4px;">Charts &amp; insights</div>
+        </div>
+        <div class="bidir-arrow">
+          <span class="arr-tip-l"></span>
+          <div class="arr-line"></div>
+          <span class="arr-tip-r"></span>
+        </div>
+        <div class="nav-node nav-node-settings" style="min-width:130px;">
+          &#9881; Settings
+          <div style="font-size:10px;color:rgba(206,147,216,0.7);margin-top:4px;">Preferences</div>
+        </div>
+      </div>
+    </div>
+    <!-- Special nav routes -->
+    <div style="margin-top:28px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Special Navigation Triggers</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="padding:6px 12px;border-radius:8px;background:rgba(156,39,176,0.15);color:#CE93D8;font-size:12px;font-weight:600;">Settings "Save & Apply"</span>
+        <span class="flow-arrow" style="width:30px;"></span>
+        <span style="padding:6px 12px;border-radius:8px;background:rgba(233,69,96,0.15);color:#e94560;font-size:12px;font-weight:600;">Task Screen</span>
+        <span style="color:#a0a0b0;font-size:11px;margin-left:8px;">navigation.navigate('Task')</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="padding:6px 12px;border-radius:8px;background:rgba(255,152,0,0.15);color:#FF9800;font-size:12px;font-weight:600;">Notification Tap</span>
+        <span class="flow-arrow" style="width:30px;"></span>
+        <span style="padding:6px 12px;border-radius:8px;background:rgba(233,69,96,0.15);color:#e94560;font-size:12px;font-weight:600;">Task Screen</span>
+        <span style="color:#a0a0b0;font-size:11px;margin-left:8px;">navigationRef.navigate('Task') + bump trigger</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="padding:6px 12px;border-radius:8px;background:rgba(33,150,243,0.15);color:#2196F3;font-size:12px;font-weight:600;">Tab Press (any)</span>
+        <span class="flow-arrow" style="width:30px;"></span>
+        <span style="padding:6px 12px;border-radius:8px;background:rgba(156,39,176,0.15);color:#CE93D8;font-size:12px;font-weight:600;">hapticLight()</span>
+        <span style="color:#a0a0b0;font-size:11px;margin-left:8px;">screenListeners.tabPress</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 7. NOTIFICATION SYSTEM ===== -->
+<section class="section" id="notifications">
+  <div class="section-header">
+    <div class="section-num">Section 07</div>
+    <h2 class="section-title">Notification System</h2>
+    <p class="section-desc">The full lifecycle from permission request to user response</p>
+  </div>
+  <div class="diagram-wrap">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;">Scheduling Flow</div>
+    <div class="seq-diagram">
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">App</span></div>
+        <div class="seq-center seq-guard"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-guard" onclick="showPopup('Expo Go Guard','src/services/notificationService.ts','const isExpoGo = Constants.appOwnership === \'expo\';\n\n// Every notification function checks this:\nif (isExpoGo) {\n  console.log(\'Push notifications not available in Expo Go.\');\n  return false;\n}')">
+          <div class="seq-title">isExpoGo Check</div>
+          <div class="seq-detail">If running in Expo Go, skip all notification logic entirely</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">App</span></div>
+        <div class="seq-center seq-app"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-app" onclick="showPopup('Register','src/services/notificationService.ts','export async function registerForPushNotifications() {\n  if (!Device.isDevice) return false;\n  const { status } = await Notifications.getPermissionsAsync();\n  if (status !== \'granted\') {\n    const { status: newStatus } = await Notifications.requestPermissionsAsync();\n  }\n  // Android: create channel\n  if (Platform.OS === \'android\') {\n    await Notifications.setNotificationChannelAsync(\'activity-reminder\', {\n      importance: HIGH, vibrationPattern: [0, 250, 250, 250]\n    });\n  }\n}')">
+          <div class="seq-title">registerForPushNotifications()</div>
+          <div class="seq-detail">Request OS permission, create Android channel ("activity-reminder", HIGH importance)</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">App</span></div>
+        <div class="seq-center seq-system"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-system" onclick="showPopup('Read Settings','src/services/settingsService.ts','export async function getSettings(): Promise&lt;AppSettings&gt; {\n  const stored = await AsyncStorage.getItem(SETTINGS_KEY);\n  if (stored) {\n    return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };\n  }\n  return DEFAULT_SETTINGS;\n}')">
+          <div class="seq-title">getSettings()</div>
+          <div class="seq-detail">Read notification frequency, sleep mode, and DND windows from AsyncStorage</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">Scheduler</span></div>
+        <div class="seq-center seq-system"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-system" onclick="showPopup('Calculate Intervals','src/services/notificationService.ts','const intervalMs = getFrequencySeconds(settings.notificationFrequency) * 1000;\nconst totalMs = NOTIFICATION_WINDOW_HOURS * 60 * 60 * 1000; // 12h\n\nfor (let offset = intervalMs; offset &lt;= totalMs; offset += intervalMs) {\n  const triggerDate = new Date(now.getTime() + offset);\n  if (isTimeBlocked(triggerDate, settings)) continue;\n  // schedule...\n}')">
+          <div class="seq-title">Calculate Intervals</div>
+          <div class="seq-detail">Loop from now to +12 hours at the chosen frequency interval</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">Scheduler</span></div>
+        <div class="seq-center seq-guard"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-guard" onclick="showPopup('isTimeBlocked()','src/services/notificationService.ts','function isTimeBlocked(date, settings) {\n  const minutes = date.getHours() * 60 + date.getMinutes();\n  if (settings.sleepModeEnabled &&\n      isMinuteInRange(minutes, settings.sleepStart, settings.sleepEnd))\n    return true;\n  if (settings.dndEnabled &&\n      isMinuteInRange(minutes, settings.dndStart, settings.dndEnd))\n    return true;\n  return false;\n}')">
+          <div class="seq-title">Skip Sleep / DND Windows</div>
+          <div class="seq-detail">isTimeBlocked() checks if trigger time falls in sleep or DND range (handles overnight)</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">Scheduler</span></div>
+        <div class="seq-center seq-app"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-app">
+          <div class="seq-title">Schedule DATE Triggers</div>
+          <div class="seq-detail">Individual Notifications.scheduleNotificationAsync() with type: DATE for each valid slot</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="diagram-wrap">
+    <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:16px;">When Notification Fires</div>
+    <div class="seq-diagram">
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">OS</span></div>
+        <div class="seq-center seq-system"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-system">
+          <div class="seq-title">Notification Delivered</div>
+          <div class="seq-detail">"What are you up to?" with sound + vibration</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">App</span></div>
+        <div class="seq-center seq-app"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-app" onclick="showPopup('Notification Listener','App.tsx','// Foreground listener\nNotifications.addNotificationReceivedListener(() =&gt; {\n  navigationRef.current?.navigate(\'Task\');\n  setNotificationTrigger(prev =&gt; prev + 1);\n});\n\n// Background/killed listener\nNotifications.addNotificationResponseReceivedListener(() =&gt; {\n  navigationRef.current?.navigate(\'Task\');\n  setNotificationTrigger(prev =&gt; prev + 1);\n});')">
+          <div class="seq-title">Navigate to Task + Bump Trigger</div>
+          <div class="seq-detail">addNotificationReceivedListener navigates and increments notificationTrigger</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">TaskScreen</span></div>
+        <div class="seq-center seq-user"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-user" onclick="showPopup('Reminder Banner','src/screens/TaskScreen.tsx','useEffect(() =&gt; {\n  if (notificationTrigger &gt; 0) {\n    setShowReminder(true);\n    hapticMedium();\n    Animated.loop(\n      Animated.sequence([\n        Animated.timing(reminderPulse, { toValue: 1.02, ... }),\n        Animated.timing(reminderPulse, { toValue: 1, ... }),\n      ]),\n      { iterations: 3 }\n    ).start();\n  }\n}, [notificationTrigger]);')">
+          <div class="seq-title">Show Reminder Banner</div>
+          <div class="seq-detail">Red pulsing banner: "Time to log! What have you been doing?" + hapticMedium()</div>
+        </div>
+      </div>
+      <div class="seq-step">
+        <div class="seq-left"><span class="seq-actor">User</span></div>
+        <div class="seq-center seq-user"><div class="seq-dot"></div><div class="seq-line"></div></div>
+        <div class="seq-right seq-user">
+          <div class="seq-title">Logs Activity</div>
+          <div class="seq-detail">Taps card, banner dismissed (showReminder = false), cooldown starts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 8. BUILD PIPELINE ===== -->
+<section class="section" id="build">
+  <div class="section-header">
+    <div class="section-num">Section 08</div>
+    <h2 class="section-title">Build Pipeline</h2>
+    <p class="section-desc">From source code to APK on your Android device</p>
+  </div>
+  <div class="diagram-wrap">
+    <div class="pipeline">
+      <div class="pipe-step pipe-src">
+        <span class="pipe-icon">&#128187;</span>
+        <span class="pipe-label">Source Code</span>
+        <span class="pipe-detail">OneDrive directory</span>
+      </div>
+      <div class="pipe-arrow"></div>
+      <div class="pipe-step pipe-build">
+        <span class="pipe-icon">&#128259;</span>
+        <span class="pipe-label">Sync to Build Dir</span>
+        <span class="pipe-detail">C:\dev\ductivity_build</span>
+      </div>
+      <div class="pipe-arrow"></div>
+      <div class="pipe-step pipe-build">
+        <span class="pipe-icon">&#128230;</span>
+        <span class="pipe-label">npm install</span>
+        <span class="pipe-detail">Install dependencies</span>
+      </div>
+      <div class="pipe-arrow"></div>
+      <div class="pipe-step pipe-build">
+        <span class="pipe-icon">&#128220;</span>
+        <span class="pipe-label">git commit</span>
+        <span class="pipe-detail">EAS needs clean git</span>
+      </div>
+      <div class="pipe-arrow"></div>
+      <div class="pipe-step pipe-cloud">
+        <span class="pipe-icon">&#9729;&#65039;</span>
+        <span class="pipe-label">eas build</span>
+        <span class="pipe-detail">EAS Cloud build</span>
+      </div>
+      <div class="pipe-arrow"></div>
+      <div class="pipe-step pipe-out">
+        <span class="pipe-icon">&#128229;</span>
+        <span class="pipe-label">APK Download</span>
+        <span class="pipe-detail">Install on device</span>
+      </div>
+    </div>
+    <div class="info-callout">
+      <strong>Why sync to a separate directory?</strong> The source lives on OneDrive (C:\Users\anind\OneDrive\Desktop\...) which uses cloud-synced virtual files. EAS Build requires a real git repo with all files physically present. The build directory at C:\dev\ductivity_build is a local-only folder where git and npm can work reliably.
+    </div>
+    <div class="info-callout" style="margin-top:12px;">
+      <strong>.easignore &amp; .gitignore</strong> control which files are excluded from the EAS upload and git tracking respectively. node_modules, .expo, and build artifacts are excluded to keep the bundle small and builds fast.
+    </div>
+  </div>
+</section>
+
+<!-- ===== 9. BUILDING BLOCKS ===== -->
+<section class="section" id="blocks">
+  <div class="section-header">
+    <div class="section-num">Section 09</div>
+    <h2 class="section-title">Step-by-Step Building Blocks</h2>
+    <p class="section-desc">How the app was built incrementally, layer by layer</p>
+  </div>
+  <div class="diagram-wrap">
+    <div class="steps-controls">
+      <button class="step-btn step-btn-secondary" onclick="changeStep(-1)">Prev</button>
+      <span class="step-indicator" id="stepIndicator">Step 1 / 9</span>
+      <div class="step-progress"><div class="step-progress-fill" id="stepProgress" style="width:11.1%"></div></div>
+      <button class="step-btn step-btn-primary" onclick="changeStep(1)">Next</button>
+      <button class="step-btn step-btn-secondary" id="playBtn" onclick="toggleAutoPlay()">&#9654; Play</button>
+    </div>
+    <div id="stepContent"></div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer style="text-align:center;padding:48px 24px;color:#555;font-size:12px;border-top:1px solid #16213e;">
+  Ductivity Architecture Guide &mdash; Built with pure HTML, CSS &amp; JS
+</footer>
+
+<script>
+/* ========== POPUP ========== */
+function showPopup(title, path, code) {
+  document.getElementById('popupTitle').textContent = title;
+  document.getElementById('popupPath').textContent = path;
+  document.getElementById('popupCode').textContent = code;
+  document.getElementById('popupOverlay').classList.add('show');
+}
+function closePopup(e) {
+  if (e.target === document.getElementById('popupOverlay')) {
+    document.getElementById('popupOverlay').classList.remove('show');
+  }
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('popupOverlay').classList.remove('show');
+});
+
+/* ========== LAYER TOGGLE ========== */
+function toggleLayer(name, btn) {
+  const isOn = btn.classList.toggle('on');
+  btn.classList.toggle('off', !isOn);
+  const layer = document.querySelector(`[data-layer="${name}"]`);
+  if (layer) layer.style.display = isOn ? '' : 'none';
+}
+
+/* ========== SERVICE HIGHLIGHT ========== */
+function highlightConnections(el) {
+  const uses = (el.getAttribute('data-uses') || '').split(',');
+  document.querySelectorAll('.layer-services .layer-item').forEach(item => {
+    const svc = item.getAttribute('data-svc');
+    if (uses.includes(svc)) item.classList.add('highlighted');
+  });
+}
+function clearHighlights() {
+  document.querySelectorAll('.layer-item.highlighted').forEach(el => el.classList.remove('highlighted'));
+}
+
+/* ========== NAV HIGHLIGHT ========== */
+const sections = ['launch','tree','dataflow','services','state','navigation','notifications','build','blocks'];
+function updateNav() {
+  let current = '';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.getBoundingClientRect().top < 200) current = id;
+  });
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+  });
+  document.querySelectorAll('.toc-dot').forEach(dot => {
+    dot.classList.toggle('active', dot.getAttribute('data-section') === current);
+  });
+}
+window.addEventListener('scroll', updateNav, { passive: true });
+
+/* ========== BUILDING BLOCKS STEPS ========== */
+const STEPS = [
+  {
+    title: 'Types & Config',
+    desc: 'Define the core data types (CategoryType, Activity, ActivityLog, TimeFilter) and the activity catalogue. These are the foundation everything else builds on.',
+    before: ['<span class="dir">ductivity_app/</span>', '  package.json', '  App.tsx (empty)'],
+    after: ['<span class="dir">ductivity_app/</span>', '  <span class="dir">src/</span>', '    <span class="dir">types/</span>', '      <span class="new-file highlight">index.ts</span> (CategoryType, Activity, ActivityLog, CATEGORY_COLORS)', '    <span class="dir">config/</span>', '      <span class="new-file highlight">activities.ts</span> (8 activities with emoji, name, category)', '      <span class="new-file highlight">constants.ts</span> (timing constants, layout values)']
+  },
+  {
+    title: 'Firebase Setup',
+    desc: 'Initialize Firebase and create the activity service for reading/writing to Firestore. This is the data backbone of the app.',
+    before: ['<span class="dir">src/config/</span>', '  activities.ts', '  constants.ts', '<span class="dir">src/types/</span>', '  index.ts'],
+    after: ['<span class="dir">src/config/</span>', '  activities.ts', '  constants.ts', '  <span class="new-file highlight">firebase.ts</span> (initializeApp, getFirestore)', '<span class="dir">src/services/</span>', '  <span class="new-file highlight">activityService.ts</span> (logActivity, deleteActivity, getActivities)']
+  },
+  {
+    title: 'Task Screen',
+    desc: 'Build the main activity logging screen with a FlatList grid of tappable activity cards, category badges, and loading states.',
+    before: ['<span class="dir">src/screens/</span>', '  (empty)'],
+    after: ['<span class="dir">src/screens/</span>', '  <span class="new-file highlight">TaskScreen.tsx</span>', '    ActivityCard component (memoized)', '    FlatList with numColumns={2}', '    handleActivityPress + handleUndo']
+  },
+  {
+    title: 'Navigation + Splash + Welcome',
+    desc: 'Add the Tab Navigator, splash screen animation, and first-run onboarding with name input. UserContext provides the user name globally.',
+    before: ['App.tsx (renders TaskScreen only)'],
+    after: ['App.tsx (Tab.Navigator with 3 screens)', '<span class="dir">src/screens/</span>', '  <span class="new-file highlight">SplashScreen.tsx</span> (2.5s animated splash)', '  <span class="new-file highlight">WelcomeScreen.tsx</span> (onboarding + name input)', '  TaskScreen.tsx', '<span class="dir">src/context/</span>', '  <span class="new-file highlight">UserContext.tsx</span> (userName in AsyncStorage)']
+  },
+  {
+    title: 'Dashboard with Charts',
+    desc: 'Build the Dashboard screen with time filters, chart type selection, and four visualization modes (Pie, Bar, Timeline, Progress).',
+    before: ['<span class="dir">src/screens/</span>', '  SplashScreen.tsx', '  WelcomeScreen.tsx', '  TaskScreen.tsx'],
+    after: ['<span class="dir">src/screens/</span>', '  <span class="new-file highlight">DashboardScreen.tsx</span> (filters + chart selector)', '<span class="dir">src/components/</span>', '  <span class="new-file highlight">ActivityChart.tsx</span> (Pie, Bar, Timeline, Progress)', '  <span class="new-file highlight">SkeletonLoader.tsx</span> (loading placeholder)', '  <span class="new-file highlight">WordOfTheDay.tsx</span> (31 rotating vocab words)']
+  },
+  {
+    title: 'Animations & Haptics',
+    desc: 'Add satisfying micro-interactions: spring-scale buttons, fade-in-up hooks, entrance animations, and haptic feedback on every tap.',
+    before: ['<span class="dir">src/utils/</span>', '  (empty)'],
+    after: ['<span class="dir">src/utils/</span>', '  <span class="new-file highlight">animations.tsx</span> (AnimatedButton, useFadeInUp, FadeInCard)', '  <span class="new-file highlight">haptics.ts</span> (hapticLight, hapticMedium, hapticSuccess)', '', 'Uses built-in Animated API (not Reanimated)', 'Works in Expo Go without native modules']
+  },
+  {
+    title: 'Notification System',
+    desc: 'Implement local push notifications: permission requests, batch scheduling for 12 hours, sleep/DND window skipping, and foreground/background listeners.',
+    before: ['<span class="dir">src/services/</span>', '  activityService.ts'],
+    after: ['<span class="dir">src/services/</span>', '  activityService.ts', '  <span class="new-file highlight">notificationService.ts</span>', '    registerForPushNotifications()', '    scheduleActivityReminder()', '    sendTestNotification()', '    cancelAllReminders()', '', 'App.tsx: NotificationContext + listeners', 'TaskScreen: reminder banner + trigger watch']
+  },
+  {
+    title: 'Settings Screen',
+    desc: 'Add user preferences: notification frequency (1min to 3h), sleep mode, DND mode with custom time pickers, and data management actions.',
+    before: ['<span class="dir">src/services/</span>', '  activityService.ts', '  notificationService.ts'],
+    after: ['<span class="dir">src/screens/</span>', '  <span class="new-file highlight">SettingsScreen.tsx</span>', '    Frequency grid (7 options)', '    Sleep Mode toggle + TimePicker', '    DND toggle + TimePicker', '    Save & Apply button', '    Clear Data section (3 options)', '<span class="dir">src/services/</span>', '  <span class="new-file highlight">settingsService.ts</span> (getSettings, saveSettings, getFrequencySeconds)']
+  },
+  {
+    title: 'Optimizations',
+    desc: 'Add query caching (30s TTL), React.memo on components, useMemo for aggregations, centralized constants, and shared time utilities.',
+    before: ['(app works but re-fetches on every filter switch)', '(magic numbers scattered in code)'],
+    after: ['<span class="dir">src/services/</span>', '  <span class="new-file highlight">queryCache.ts</span> (getCached, setCache, clearCache, 30s TTL)', '<span class="dir">src/utils/</span>', '  <span class="new-file highlight">timeUtils.ts</span> (parseTime, isMinuteInRange, formatCountdown)', '<span class="dir">src/config/</span>', '  <span class="new-file highlight">constants.ts</span> (all magic numbers centralized)', '', 'React.memo: Toast, SkeletonLoader, WordOfTheDay, ActivityCard', 'useMemo: ActivityChart data aggregation']
+  }
+];
+
+let currentStep = 0;
+let autoPlayInterval = null;
+
+function renderStep() {
+  const step = STEPS[currentStep];
+  const html = `
+    <div class="step-desc"><strong>Step ${currentStep + 1}: ${step.title}</strong> &mdash; ${step.desc}</div>
+    <div class="step-content">
+      <div class="step-panel step-before">
+        <h4>Before</h4>
+        <div class="file-tree">${step.before.map(l => '<div>' + (l || '&nbsp;') + '</div>').join('')}</div>
+      </div>
+      <div class="step-panel step-after">
+        <h4>After</h4>
+        <div class="file-tree">${step.after.map(l => '<div>' + (l || '&nbsp;') + '</div>').join('')}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('stepContent').innerHTML = html;
+  document.getElementById('stepIndicator').textContent = `Step ${currentStep + 1} / ${STEPS.length}`;
+  document.getElementById('stepProgress').style.width = ((currentStep + 1) / STEPS.length * 100) + '%';
+}
+
+function changeStep(dir) {
+  currentStep = Math.max(0, Math.min(STEPS.length - 1, currentStep + dir));
+  renderStep();
+}
+
+function toggleAutoPlay() {
+  const btn = document.getElementById('playBtn');
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+    btn.innerHTML = '&#9654; Play';
+  } else {
+    btn.innerHTML = '&#9724; Pause';
+    autoPlayInterval = setInterval(() => {
+      if (currentStep >= STEPS.length - 1) {
+        currentStep = 0;
+      } else {
+        currentStep++;
+      }
+      renderStep();
+    }, 3000);
+  }
+}
+
+renderStep();
+</script>
+</body>
+</html>

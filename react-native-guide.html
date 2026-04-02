@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>React Native Guide - Ductivity App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ========== CSS RESET & VARIABLES ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f0f23;
+  --bg-card: #16213e;
+  --bg-code: #0d1117;
+  --accent: #e94560;
+  --accent-dim: rgba(233, 69, 96, 0.15);
+  --accent-glow: rgba(233, 69, 96, 0.3);
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b0;
+  --text-muted: #666680;
+  --border-color: #1e2a45;
+  --green: #4CAF50;
+  --orange: #FF9800;
+  --red: #F44336;
+  --blue: #2196F3;
+  --purple: #9C27B0;
+  --sidebar-width: 280px;
+  --header-height: 60px;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f5fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8e8f0;
+  --bg-card: #ffffff;
+  --bg-code: #f6f8fa;
+  --text-primary: #1a1a2e;
+  --text-secondary: #555566;
+  --text-muted: #888899;
+  --border-color: #d0d0e0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ========== PROGRESS BAR ========== */
+#progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #ff6b8a);
+  z-index: 10000;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* ========== HEADER ========== */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 999;
+  backdrop-filter: blur(12px);
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-brand span { color: var(--accent); }
+
+.header-controls { display: flex; align-items: center; gap: 12px; }
+
+.theme-toggle {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  transition: all 0.2s;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  width: var(--sidebar-width);
+  height: calc(100vh - var(--header-height));
+  background: var(--bg-tertiary);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  padding: 20px 0;
+  z-index: 998;
+  transition: transform 0.3s ease;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+.sidebar-section { padding: 0 16px; margin-bottom: 8px; }
+.sidebar-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  margin: 2px 8px;
+  transition: all 0.2s;
+}
+.nav-link:hover {
+  color: var(--text-primary);
+  background: var(--accent-dim);
+}
+.nav-link.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  font-weight: 600;
+}
+.nav-link .nav-number {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 20px;
+}
+
+/* ========== MAIN CONTENT ========== */
+.main-content {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  padding: 40px 60px 100px;
+  max-width: 900px;
+}
+
+/* ========== SECTIONS ========== */
+.section {
+  margin-bottom: 80px;
+  scroll-margin-top: calc(var(--header-height) + 20px);
+}
+
+.section-number {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 40px;
+  margin-bottom: 12px;
+}
+
+h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+p {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-size: 15px;
+}
+
+/* ========== CODE BLOCKS ========== */
+.code-block {
+  position: relative;
+  background: var(--bg-code);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin: 16px 0 24px;
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.code-filename {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.2s;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+.code-block pre {
+  padding: 16px 20px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  tab-size: 2;
+}
+
+.code-block pre::-webkit-scrollbar { height: 6px; }
+.code-block pre::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+/* Syntax Highlighting */
+.kw { color: #ff79c6; }          /* keywords */
+.fn { color: #50fa7b; }          /* function names */
+.str { color: #f1fa8c; }         /* strings */
+.num { color: #bd93f9; }         /* numbers */
+.cm { color: #6272a4; font-style: italic; } /* comments */
+.tp { color: #8be9fd; }          /* types */
+.op { color: #ff79c6; }          /* operators */
+.tag { color: #ff79c6; }         /* JSX tags */
+.attr { color: #50fa7b; }        /* attributes */
+.val { color: #f1fa8c; }         /* values */
+.imp { color: #ff79c6; }         /* import/export */
+.dec { color: #8be9fd; }         /* decorators */
+.pn { color: #e8e8f0; }          /* punctuation */
+.pr { color: #bd93f9; }          /* properties */
+
+[data-theme="light"] .kw { color: #d73a49; }
+[data-theme="light"] .fn { color: #6f42c1; }
+[data-theme="light"] .str { color: #032f62; }
+[data-theme="light"] .num { color: #005cc5; }
+[data-theme="light"] .cm { color: #6a737d; }
+[data-theme="light"] .tp { color: #005cc5; }
+[data-theme="light"] .tag { color: #22863a; }
+[data-theme="light"] .attr { color: #6f42c1; }
+[data-theme="light"] .pr { color: #005cc5; }
+
+/* ========== CALLOUT BOXES ========== */
+.callout {
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  border-left: 4px solid;
+}
+
+.callout-takeaway {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: var(--green);
+}
+.callout-takeaway .callout-title { color: var(--green); }
+
+.callout-warning {
+  background: rgba(255, 152, 0, 0.08);
+  border-color: var(--orange);
+}
+.callout-warning .callout-title { color: var(--orange); }
+
+.callout-info {
+  background: rgba(33, 150, 243, 0.08);
+  border-color: var(--blue);
+}
+.callout-info .callout-title { color: var(--blue); }
+
+.callout-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.callout p { margin-bottom: 4px; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* ========== TABS ========== */
+.tabs-container { margin: 16px 0 24px; }
+
+.tabs-header {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 8px 18px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ========== COLLAPSIBLE ========== */
+.collapsible {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.collapsible-header {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.2s;
+}
+.collapsible-header:hover { background: var(--accent-dim); }
+
+.collapsible-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.collapsible-icon {
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: transform 0.3s;
+}
+
+.collapsible.open .collapsible-icon { transform: rotate(180deg); }
+
+.collapsible-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+.collapsible.open .collapsible-body { max-height: 3000px; }
+
+.collapsible-content { padding: 20px; }
+
+/* ========== QUIZ ========== */
+.quiz {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 32px 0;
+}
+
+.quiz-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.quiz-question {
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.quiz-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+.quiz-option {
+  padding: 10px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  text-align: left;
+  transition: all 0.2s;
+}
+.quiz-option:hover { border-color: var(--accent); color: var(--text-primary); }
+.quiz-option.correct { background: rgba(76, 175, 80, 0.15); border-color: var(--green); color: var(--green); }
+.quiz-option.incorrect { background: rgba(244, 67, 54, 0.15); border-color: var(--red); color: var(--red); }
+.quiz-option.disabled { pointer-events: none; }
+
+.quiz-feedback {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 0;
+  display: none;
+}
+
+/* ========== FILE TREE ========== */
+.file-tree {
+  background: var(--bg-code);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.file-tree .folder { color: var(--blue); font-weight: 600; }
+.file-tree .file { color: var(--text-secondary); }
+.file-tree .desc { color: var(--text-muted); font-style: italic; font-size: 11px; }
+
+/* ========== BACK TO TOP ========== */
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  z-index: 997;
+}
+.back-to-top.visible { opacity: 1; transform: translateY(0); }
+.back-to-top:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+
+/* ========== INLINE CODE ========== */
+code:not(pre code) {
+  background: var(--accent-dim);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ========== LISTS ========== */
+ul, ol {
+  padding-left: 24px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+li { margin-bottom: 6px; font-size: 15px; }
+
+/* ========== HERO ========== */
+.hero {
+  text-align: center;
+  padding: 60px 0 40px;
+  margin-bottom: 60px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hero-emoji { font-size: 72px; margin-bottom: 16px; display: block; }
+.hero h1 {
+  font-size: 42px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), #ff6b8a, #ff9b8a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+.hero p { font-size: 18px; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
+
+.hero-badges {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-rn { background: rgba(97, 218, 251, 0.15); color: #61dafb; }
+.badge-expo { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.badge-ts { background: rgba(49, 120, 198, 0.15); color: #3178c6; }
+.badge-firebase { background: rgba(255, 152, 0, 0.15); color: #FF9800; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1024px) {
+  .main-content { padding: 30px 30px 100px; }
+}
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.3); }
+  .main-content { margin-left: 0; padding: 20px 16px 100px; }
+  .hamburger { display: block; }
+  h2 { font-size: 26px; }
+  .hero h1 { font-size: 32px; }
+  .hero-emoji { font-size: 56px; }
+  .code-block pre { font-size: 12px; }
+  .sidebar-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 997; display: none;
+  }
+  .sidebar-overlay.open { display: block; }
+}
+
+/* ========== FILL IN THE BLANK ========== */
+.fill-blank {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.fill-blank-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 12px;
+}
+
+.fill-blank code {
+  background: var(--bg-primary);
+  display: block;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 8px 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.blank-input {
+  background: rgba(233, 69, 96, 0.1);
+  border: 1px dashed var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 2px 8px;
+  width: 140px;
+  outline: none;
+}
+.blank-input:focus { border-style: solid; }
+.blank-input.correct { border-color: var(--green); color: var(--green); background: rgba(76,175,80,0.1); }
+.blank-input.incorrect { border-color: var(--red); color: var(--red); background: rgba(244,67,54,0.1); }
+
+.check-blank-btn {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+</style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div id="progress-bar" style="width: 0%"></div>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-brand">
+    <button class="hamburger" onclick="toggleSidebar()">&#9776;</button>
+    <span>Ductivity</span> React Native Guide
+  </div>
+  <div class="header-controls">
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Light/Dark</button>
+  </div>
+</header>
+
+<!-- Sidebar Overlay for mobile -->
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Foundations</div>
+    <a class="nav-link" href="#intro"><span class="nav-number">01</span> Introduction</a>
+    <a class="nav-link" href="#core-components"><span class="nav-number">02</span> Core Components</a>
+    <a class="nav-link" href="#styling"><span class="nav-number">03</span> Styling</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Features</div>
+    <a class="nav-link" href="#navigation"><span class="nav-number">04</span> Navigation</a>
+    <a class="nav-link" href="#state"><span class="nav-number">05</span> State Management</a>
+    <a class="nav-link" href="#firebase"><span class="nav-number">06</span> Firebase</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Advanced</div>
+    <a class="nav-link" href="#animations"><span class="nav-number">07</span> Animations</a>
+    <a class="nav-link" href="#notifications"><span class="nav-number">08</span> Notifications</a>
+    <a class="nav-link" href="#typescript"><span class="nav-number">09</span> TypeScript</a>
+    <a class="nav-link" href="#performance"><span class="nav-number">10</span> Performance</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Shipping</div>
+    <a class="nav-link" href="#deploy"><span class="nav-number">11</span> Build &amp; Deploy</a>
+    <a class="nav-link" href="#architecture"><span class="nav-number">12</span> Architecture</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+
+<!-- Hero -->
+<div class="hero">
+  <span class="hero-emoji">&#127919;</span>
+  <h1>Learn React Native</h1>
+  <p>A hands-on guide using real code from the Ductivity productivity app. Every example comes straight from a shipping codebase.</p>
+  <div class="hero-badges">
+    <span class="badge badge-rn">React Native</span>
+    <span class="badge badge-expo">Expo SDK</span>
+    <span class="badge badge-ts">TypeScript</span>
+    <span class="badge badge-firebase">Firebase</span>
+  </div>
+</div>
+
+<!-- ==================== SECTION 1: INTRODUCTION ==================== -->
+<section class="section" id="intro">
+  <div class="section-number">Section 01</div>
+  <h2>Introduction to React Native</h2>
+
+  <h3>What is React Native?</h3>
+  <p>React Native lets you build mobile apps for iOS and Android using JavaScript and React. Unlike a web-wrapped app, React Native renders real native components -- a <code>&lt;View&gt;</code> becomes a native UIView on iOS and an android.view.View on Android.</p>
+
+  <h3>React Native vs React Web</h3>
+  <ul>
+    <li><strong>No HTML elements</strong> -- you use <code>View</code> instead of <code>div</code>, <code>Text</code> instead of <code>p</code> or <code>span</code></li>
+    <li><strong>StyleSheet API</strong> -- CSS-like objects, but no cascading or class selectors</li>
+    <li><strong>No browser APIs</strong> -- no DOM, no window, no document</li>
+    <li><strong>Platform-specific code</strong> -- some APIs differ between iOS and Android</li>
+  </ul>
+
+  <h3>Expo vs Bare React Native</h3>
+  <p>Expo provides a managed workflow with pre-configured tools, OTA updates, and a development client (Expo Go) for quick testing. Ductivity uses Expo, which means we can test on a physical device by simply scanning a QR code.</p>
+
+  <div class="callout callout-warning">
+    <div class="callout-title">Expo Go Limitations</div>
+    <p>Expo Go does not support native modules like <code>react-native-reanimated</code> or push notifications. Ductivity uses the built-in <code>Animated</code> API instead of Reanimated for exactly this reason. Push notifications require a development build.</p>
+  </div>
+
+  <h3>Ductivity Project Structure</h3>
+  <div class="file-tree">
+<span class="folder">ductivity_app/</span>
+  <span class="file">App.tsx</span>              <span class="desc">-- Root component, tab navigator, notification setup</span>
+  <span class="file">app.json</span>             <span class="desc">-- Expo configuration</span>
+  <span class="file">package.json</span>
+  <span class="folder">src/</span>
+    <span class="folder">components/</span>
+      <span class="file">ActivityChart.tsx</span>  <span class="desc">-- Pie, bar, timeline, progress charts</span>
+      <span class="file">SkeletonLoader.tsx</span> <span class="desc">-- Placeholder loading animation</span>
+      <span class="file">Toast.tsx</span>          <span class="desc">-- Slide-down confirmation toast</span>
+      <span class="file">WordOfTheDay.tsx</span>
+    <span class="folder">config/</span>
+      <span class="file">activities.ts</span>      <span class="desc">-- Activity definitions</span>
+      <span class="file">constants.ts</span>       <span class="desc">-- Magic numbers &amp; timing values</span>
+      <span class="file">firebase.ts</span>        <span class="desc">-- Firebase initialization</span>
+    <span class="folder">context/</span>
+      <span class="file">UserContext.tsx</span>     <span class="desc">-- Global user name state</span>
+    <span class="folder">screens/</span>
+      <span class="file">DashboardScreen.tsx</span><span class="desc">-- Charts &amp; productivity insights</span>
+      <span class="file">SettingsScreen.tsx</span>
+      <span class="file">SplashScreen.tsx</span>
+      <span class="file">TaskScreen.tsx</span>     <span class="desc">-- Activity logging grid</span>
+      <span class="file">WelcomeScreen.tsx</span>  <span class="desc">-- First-run onboarding</span>
+    <span class="folder">services/</span>
+      <span class="file">activityService.ts</span> <span class="desc">-- Firestore CRUD</span>
+      <span class="file">notificationService.ts</span>
+      <span class="file">queryCache.ts</span>      <span class="desc">-- In-memory query cache</span>
+      <span class="file">settingsService.ts</span>
+    <span class="folder">types/</span>
+      <span class="file">index.ts</span>           <span class="desc">-- Shared interfaces &amp; constants</span>
+    <span class="folder">utils/</span>
+      <span class="file">animations.tsx</span>     <span class="desc">-- Reusable animation components</span>
+      <span class="file">haptics.ts</span>
+      <span class="file">timeUtils.ts</span>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>React Native uses native components under the hood, not a WebView. Expo provides a streamlined development experience, but some native features require a custom development build rather than Expo Go.</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 2: CORE COMPONENTS ==================== -->
+<section class="section" id="core-components">
+  <div class="section-number">Section 02</div>
+  <h2>Core Components</h2>
+
+  <p>React Native provides a set of core components that map to native UI widgets. Here are the most important ones, all used in Ductivity.</p>
+
+  <h3>View and Text</h3>
+  <p><code>View</code> is the fundamental building block -- equivalent to <code>div</code> in web. <code>Text</code> is required for any text content (you cannot put raw text inside a <code>View</code>).</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- Header</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="tag">&lt;View</span> <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">container</span><span class="pn">}</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;StatusBar</span> <span class="attr">barStyle</span>=<span class="str">"light-content"</span> <span class="tag">/&gt;</span>
+  <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">header</span><span class="pn">}</span><span class="tag">&gt;</span>
+    <span class="pn">{</span><span class="pr">userName</span> ? <span class="str">`Hey ${userName}, what are you doing?`</span> : <span class="str">'What are you doing?'</span><span class="pn">}</span>
+  <span class="tag">&lt;/Text&gt;</span>
+  <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">subheader</span><span class="pn">}</span><span class="tag">&gt;</span>Tap to log your current activity<span class="tag">&lt;/Text&gt;</span>
+<span class="tag">&lt;/View&gt;</span></pre>
+  </div>
+
+  <h3>TouchableOpacity</h3>
+  <p>The standard tappable component. It reduces the opacity when pressed, providing visual feedback. Used throughout Ductivity for activity cards.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- ActivityCard</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="tag">&lt;TouchableOpacity</span>
+  <span class="attr">style</span>=<span class="pn">{[</span>
+    <span class="pr">styles</span>.<span class="pr">activityCard</span>,
+    <span class="pn">{</span> <span class="attr">borderLeftColor</span>: <span class="pr">CATEGORY_COLORS</span>[<span class="pr">activity</span>.<span class="pr">category</span>] <span class="pn">}</span>,
+    <span class="pr">isActive</span> ? <span class="pr">styles</span>.<span class="pr">activeCard</span> : <span class="kw">null</span>,
+  <span class="pn">]}</span>
+  <span class="attr">onPress</span>=<span class="pn">{</span><span class="pr">onPress</span><span class="pn">}</span>
+  <span class="attr">activeOpacity</span>=<span class="pn">{</span><span class="num">0.7</span><span class="pn">}</span>
+  <span class="attr">disabled</span>=<span class="pn">{</span><span class="pr">isLoading</span><span class="pn">}</span>
+<span class="tag">&gt;</span>
+  <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">activityEmoji</span><span class="pn">}</span><span class="tag">&gt;</span><span class="pn">{</span><span class="pr">activity</span>.<span class="pr">emoji</span><span class="pn">}</span><span class="tag">&lt;/Text&gt;</span>
+  <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">activityName</span><span class="pn">}</span><span class="tag">&gt;</span><span class="pn">{</span><span class="pr">activity</span>.<span class="pr">name</span><span class="pn">}</span><span class="tag">&lt;/Text&gt;</span>
+<span class="tag">&lt;/TouchableOpacity&gt;</span></pre>
+  </div>
+
+  <h3>FlatList -- Efficient List Rendering</h3>
+  <p><code>FlatList</code> only renders visible items, making it performant for long lists. Ductivity uses it with <code>numColumns={2}</code> for the activity card grid.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- FlatList Grid</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="tag">&lt;FlatList</span>
+  <span class="attr">data</span>=<span class="pn">{</span><span class="pr">ACTIVITIES</span><span class="pn">}</span>
+  <span class="attr">renderItem</span>=<span class="pn">{</span><span class="pr">renderCard</span><span class="pn">}</span>
+  <span class="attr">keyExtractor</span>=<span class="pn">{(</span><span class="pr">item</span><span class="pn">)</span> <span class="op">=&gt;</span> <span class="pr">item</span>.<span class="pr">id</span><span class="pn">}</span>
+  <span class="attr">numColumns</span>=<span class="pn">{</span><span class="num">2</span><span class="pn">}</span>
+  <span class="attr">columnWrapperStyle</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">row</span><span class="pn">}</span>
+  <span class="attr">scrollEnabled</span>=<span class="pn">{</span><span class="kw">false</span><span class="pn">}</span>
+  <span class="attr">removeClippedSubviews</span>=<span class="pn">{</span><span class="kw">false</span><span class="pn">}</span>
+  <span class="attr">ListFooterComponent</span>=<span class="pn">{</span>
+    <span class="pr">lastLogged</span> ? (
+      <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">lastLoggedText</span><span class="pn">}</span><span class="tag">&gt;</span>Last logged: <span class="pn">{</span><span class="pr">lastLogged</span><span class="pn">}</span><span class="tag">&lt;/Text&gt;</span>
+    ) : <span class="kw">null</span>
+  <span class="pn">}</span>
+<span class="tag">/&gt;</span></pre>
+  </div>
+
+  <h3>ScrollView with Pull-to-Refresh</h3>
+  <p>For content that needs vertical scrolling, <code>ScrollView</code> is the go-to. The Dashboard uses it with a <code>RefreshControl</code> for pull-to-refresh.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">DashboardScreen.tsx -- ScrollView</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="tag">&lt;ScrollView</span>
+  <span class="attr">style</span>=<span class="pn">{</span><span class="pr">styles</span>.<span class="pr">chartsContainer</span><span class="pn">}</span>
+  <span class="attr">showsVerticalScrollIndicator</span>=<span class="pn">{</span><span class="kw">false</span><span class="pn">}</span>
+  <span class="attr">refreshControl</span>=<span class="pn">{</span>
+    <span class="tag">&lt;RefreshControl</span>
+      <span class="attr">refreshing</span>=<span class="pn">{</span><span class="pr">refreshing</span><span class="pn">}</span>
+      <span class="attr">onRefresh</span>=<span class="pn">{</span><span class="pr">onRefresh</span><span class="pn">}</span>
+      <span class="attr">tintColor</span>=<span class="str">"#e94560"</span>
+    <span class="tag">/&gt;</span>
+  <span class="pn">}</span>
+<span class="tag">&gt;</span>
+  <span class="pn">{</span><span class="pr">loading</span> ? <span class="tag">&lt;SkeletonLoader</span> <span class="tag">/&gt;</span> : <span class="tag">&lt;ActivityChart</span> <span class="attr">logs</span>=<span class="pn">{</span><span class="pr">logs</span><span class="pn">}</span> <span class="tag">/&gt;</span><span class="pn">}</span>
+<span class="tag">&lt;/ScrollView&gt;</span></pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Use <code>FlatList</code> for dynamic lists (it virtualizes rows for performance). Use <code>ScrollView</code> for static content that just needs to scroll. Never nest a <code>FlatList</code> inside a <code>ScrollView</code> with the same scroll direction.</p>
+  </div>
+
+  <div class="quiz" data-quiz="core">
+    <div class="quiz-title">Quick Check</div>
+    <div class="quiz-question">Which component should you use for a long list of 500+ items?</div>
+    <div class="quiz-options">
+      <button class="quiz-option" onclick="checkQuiz(this, false)">ScrollView with map()</button>
+      <button class="quiz-option" onclick="checkQuiz(this, true)">FlatList</button>
+      <button class="quiz-option" onclick="checkQuiz(this, false)">View with overflow scroll</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 3: STYLING ==================== -->
+<section class="section" id="styling">
+  <div class="section-number">Section 03</div>
+  <h2>Styling in React Native</h2>
+
+  <h3>StyleSheet.create</h3>
+  <p>React Native styles use JavaScript objects, not CSS files. <code>StyleSheet.create</code> validates styles at creation time and enables optimizations.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- Styles</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> <span class="pr">styles</span> = <span class="fn">StyleSheet</span>.<span class="fn">create</span>({
+  <span class="pr">container</span>: {
+    <span class="attr">flex</span>: <span class="num">1</span>,
+    <span class="attr">backgroundColor</span>: <span class="str">'#1a1a2e'</span>,
+    <span class="attr">padding</span>: <span class="pr">CARD_PADDING</span>,
+    <span class="attr">paddingTop</span>: <span class="num">60</span>,
+  },
+  <span class="pr">activityCard</span>: {
+    <span class="attr">width</span>: <span class="pr">CARD_WIDTH</span>,
+    <span class="attr">backgroundColor</span>: <span class="str">'#16213e'</span>,
+    <span class="attr">borderRadius</span>: <span class="num">12</span>,
+    <span class="attr">padding</span>: <span class="num">16</span>,
+    <span class="attr">borderLeftWidth</span>: <span class="num">4</span>,
+    <span class="attr">alignItems</span>: <span class="str">'center'</span>,
+  },
+});</pre>
+  </div>
+
+  <h3>Dynamic Card Width with Dimensions</h3>
+  <p>To build a responsive two-column grid, Ductivity calculates card widths based on the screen dimensions.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- Dynamic Width</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> <span class="pr">SCREEN_WIDTH</span> = <span class="fn">Dimensions</span>.<span class="fn">get</span>(<span class="str">'window'</span>).<span class="pr">width</span>;
+<span class="kw">const</span> <span class="pr">CARD_GAP</span> = <span class="num">12</span>;
+<span class="kw">const</span> <span class="pr">CARD_PADDING</span> = <span class="num">20</span>;
+<span class="kw">const</span> <span class="pr">CARD_WIDTH</span> = (<span class="pr">SCREEN_WIDTH</span> - <span class="pr">CARD_PADDING</span> * <span class="num">2</span> - <span class="pr">CARD_GAP</span>) / <span class="num">2</span>;</pre>
+  </div>
+  <p>This formula subtracts horizontal padding and gap from the total width, then divides by 2 for two columns. The result adapts to any screen size.</p>
+
+  <h3>Conditional Styles</h3>
+  <p>React Native supports style arrays. Pass <code>null</code> or <code>undefined</code> to conditionally include a style:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- Conditional Styling</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="attr">style</span>=<span class="pn">{[</span>
+  <span class="pr">styles</span>.<span class="pr">activityCard</span>,
+  <span class="pn">{</span> <span class="attr">borderLeftColor</span>: <span class="pr">CATEGORY_COLORS</span>[<span class="pr">activity</span>.<span class="pr">category</span>] <span class="pn">}</span>,
+  <span class="pr">isActive</span> ? <span class="pr">styles</span>.<span class="pr">activeCard</span> : <span class="kw">null</span>,
+<span class="pn">]}</span></pre>
+  </div>
+
+  <h3>Dark Theme Pattern</h3>
+  <p>Ductivity uses a consistent color palette across all screens: <code>#1a1a2e</code> for backgrounds, <code>#16213e</code> for cards, <code>#e94560</code> as the accent, and <code>#a0a0b0</code> for secondary text. This is applied via <code>StyleSheet.create</code> at the bottom of each screen file.</p>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Flexbox is the only layout engine in React Native (it defaults to <code>flexDirection: 'column'</code>). Use <code>Dimensions.get('window')</code> for responsive sizing. Style arrays let you compose base styles with conditional overrides cleanly.</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 4: NAVIGATION ==================== -->
+<section class="section" id="navigation">
+  <div class="section-number">Section 04</div>
+  <h2>Navigation</h2>
+
+  <h3>Bottom Tab Navigator</h3>
+  <p>Ductivity uses <code>@react-navigation/bottom-tabs</code> for its three-tab layout: Task, Dashboard, and Settings.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">App.tsx -- Tab Navigator Setup</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">import</span> { <span class="fn">createBottomTabNavigator</span> } <span class="kw">from</span> <span class="str">'@react-navigation/bottom-tabs'</span>;
+
+<span class="kw">type</span> <span class="tp">TabParamList</span> = {
+  <span class="pr">Task</span>: <span class="tp">undefined</span>;
+  <span class="pr">Dashboard</span>: <span class="tp">undefined</span>;
+  <span class="pr">Settings</span>: <span class="tp">undefined</span>;
+};
+
+<span class="kw">const</span> <span class="pr">Tab</span> = <span class="fn">createBottomTabNavigator</span>&lt;<span class="tp">TabParamList</span>&gt;();</pre>
+  </div>
+
+  <h3>Configuring Tab Appearance</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">App.tsx -- Tab Styling</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="tag">&lt;Tab.Navigator</span>
+  <span class="attr">screenOptions</span>=<span class="pn">{{</span>
+    <span class="attr">headerShown</span>: <span class="kw">false</span>,
+    <span class="attr">tabBarStyle</span>: {
+      <span class="attr">backgroundColor</span>: <span class="str">'#0f0f23'</span>,
+      <span class="attr">borderTopColor</span>: <span class="str">'#16213e'</span>,
+      <span class="attr">paddingBottom</span>: <span class="num">30</span>,
+      <span class="attr">paddingTop</span>: <span class="num">10</span>,
+      <span class="attr">height</span>: <span class="num">90</span>,
+    },
+    <span class="attr">tabBarActiveTintColor</span>: <span class="str">'#e94560'</span>,
+    <span class="attr">tabBarInactiveTintColor</span>: <span class="str">'#a0a0b0'</span>,
+  <span class="pn">}}</span>
+  <span class="attr">screenListeners</span>=<span class="pn">{{</span>
+    <span class="attr">tabPress</span>: () <span class="op">=&gt;</span> <span class="fn">hapticLight</span>(),
+  <span class="pn">}}</span>
+<span class="tag">&gt;</span>
+  <span class="tag">&lt;Tab.Screen</span>
+    <span class="attr">name</span>=<span class="str">"Task"</span>
+    <span class="attr">component</span>=<span class="pn">{</span><span class="pr">TaskScreen</span><span class="pn">}</span>
+    <span class="attr">options</span>=<span class="pn">{{</span>
+      <span class="attr">tabBarLabel</span>: <span class="str">'Log Activity'</span>,
+      <span class="attr">tabBarIcon</span>: ({ <span class="pr">color</span>, <span class="pr">size</span> }) <span class="op">=&gt;</span> (
+        <span class="tag">&lt;Text</span> <span class="attr">style</span>=<span class="pn">{{</span> <span class="attr">fontSize</span>: <span class="pr">size</span>, <span class="attr">color</span> <span class="pn">}}</span><span class="tag">&gt;</span>&#127919;<span class="tag">&lt;/Text&gt;</span>
+      ),
+    <span class="pn">}}</span>
+  <span class="tag">/&gt;</span>
+<span class="tag">&lt;/Tab.Navigator&gt;</span></pre>
+  </div>
+
+  <h3>Programmatic Navigation</h3>
+  <p>Ductivity uses a <code>navigationRef</code> to navigate from outside component tree (e.g., notification handlers):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">App.tsx -- Navigating from Notification</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> <span class="pr">navigationRef</span> = <span class="fn">useRef</span>&lt;<span class="tp">NavigationContainerRef</span>&lt;<span class="tp">TabParamList</span>&gt;&gt;(<span class="kw">null</span>);
+
+<span class="cm">// Inside notification listener:</span>
+<span class="kw">if</span> (<span class="pr">navigationRef</span>.<span class="pr">current</span>) {
+  <span class="pr">navigationRef</span>.<span class="pr">current</span>.<span class="fn">navigate</span>(<span class="str">'Task'</span>);
+}
+
+<span class="cm">// Pass ref to NavigationContainer:</span>
+<span class="tag">&lt;NavigationContainer</span> <span class="attr">ref</span>=<span class="pn">{</span><span class="pr">navigationRef</span><span class="pn">}</span><span class="tag">&gt;</span></pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>React Navigation handles screen transitions, tab bars, and deep linking. Type your param lists with <code>TabParamList</code> to get compile-time safety on all <code>navigate()</code> calls. Use <code>navigationRef</code> when you need to navigate from outside the React tree (like push notification handlers).</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 5: STATE MANAGEMENT ==================== -->
+<section class="section" id="state">
+  <div class="section-number">Section 05</div>
+  <h2>State Management</h2>
+
+  <h3>useState for Local State</h3>
+  <p>The TaskScreen manages several pieces of local state. Each <code>useState</code> call handles one concern:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- Local State</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> [<span class="pr">lastLogged</span>, <span class="fn">setLastLogged</span>] = <span class="fn">useState</span>&lt;<span class="tp">string</span> | <span class="tp">null</span>&gt;(<span class="kw">null</span>);
+<span class="kw">const</span> [<span class="pr">loading</span>, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(<span class="kw">false</span>);
+<span class="kw">const</span> [<span class="pr">loadingId</span>, <span class="fn">setLoadingId</span>] = <span class="fn">useState</span>&lt;<span class="tp">string</span> | <span class="tp">null</span>&gt;(<span class="kw">null</span>);
+<span class="kw">const</span> [<span class="pr">toast</span>, <span class="fn">setToast</span>] = <span class="fn">useState</span>&lt;<span class="tp">ToastData</span> | <span class="tp">null</span>&gt;(<span class="kw">null</span>);
+<span class="kw">const</span> [<span class="pr">cooldownEnd</span>, <span class="fn">setCooldownEnd</span>] = <span class="fn">useState</span>&lt;<span class="tp">number</span>&gt;(<span class="num">0</span>);
+<span class="kw">const</span> [<span class="pr">cooldownText</span>, <span class="fn">setCooldownText</span>] = <span class="fn">useState</span>&lt;<span class="tp">string</span>&gt;(<span class="str">''</span>);</pre>
+  </div>
+
+  <h3>useEffect for Side Effects</h3>
+  <p>Ductivity uses multiple <code>useEffect</code> hooks to manage timers, data fetching, and animations. The cooldown timer is a great example:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">TaskScreen.tsx -- Cooldown Timer</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// Cooldown countdown -- pauses when screen loses focus</span>
+<span class="fn">useEffect</span>(() <span class="op">=&gt;</span> {
+  <span class="kw">if</span> (!<span class="pr">isFocused</span> || <span class="pr">cooldownEnd</span> &lt;= <span class="fn">Date</span>.<span class="fn">now</span>()) <span class="kw">return</span>;
+
+  <span class="kw">const</span> <span class="pr">interval</span> = <span class="fn">setInterval</span>(() <span class="op">=&gt;</span> {
+    <span class="kw">const</span> <span class="pr">remaining</span> = <span class="pr">cooldownEnd</span> - <span class="fn">Date</span>.<span class="fn">now</span>();
+    <span class="kw">if</span> (<span class="pr">remaining</span> &lt;= <span class="num">0</span>) {
+      <span class="fn">setCooldownText</span>(<span class="str">''</span>);
+      <span class="fn">clearInterval</span>(<span class="pr">interval</span>);
+    } <span class="kw">else</span> {
+      <span class="fn">setCooldownText</span>(<span class="fn">formatCountdown</span>(<span class="pr">remaining</span>));
+    }
+  }, <span class="pr">COOLDOWN_TICK_INTERVAL</span>);
+
+  <span class="kw">return</span> () <span class="op">=&gt;</span> <span class="fn">clearInterval</span>(<span class="pr">interval</span>);
+}, [<span class="pr">cooldownEnd</span>, <span class="pr">isFocused</span>]);</pre>
+  </div>
+
+  <h3>useRef for Persistent Values</h3>
+  <p><code>useRef</code> stores values that persist across renders without causing re-renders. In Ductivity, it holds Animated values and a flag to prevent re-running entrance animations:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">DashboardScreen.tsx -- useRef</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> <span class="pr">hasAnimated</span> = <span class="fn">useRef</span>(<span class="kw">false</span>);
+
+<span class="fn">useEffect</span>(() <span class="op">=&gt;</span> {
+  <span class="kw">if</span> (!<span class="pr">hasAnimated</span>.<span class="pr">current</span>) {
+    <span class="pr">hasAnimated</span>.<span class="pr">current</span> = <span class="kw">true</span>;
+    <span class="cm">// Run entrance animations only once</span>
+    <span class="pr">header</span>.<span class="fn">animate</span>();
+    <span class="pr">subheader</span>.<span class="fn">animate</span>();
+  }
+}, []);</pre>
+  </div>
+
+  <h3>Context API for Global State</h3>
+  <p>Ductivity uses React Context to share the username across all screens without prop drilling:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">context/UserContext.tsx</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">interface</span> <span class="tp">UserContextType</span> {
+  <span class="pr">userName</span>: <span class="tp">string</span>;
+  <span class="pr">setUserName</span>: (<span class="pr">name</span>: <span class="tp">string</span>) <span class="op">=&gt;</span> <span class="tp">Promise</span>&lt;<span class="tp">void</span>&gt;;
+  <span class="pr">isLoading</span>: <span class="tp">boolean</span>;
+}
+
+<span class="kw">export function</span> <span class="fn">UserProvider</span>({ <span class="pr">children</span> }: { <span class="pr">children</span>: <span class="tp">React.ReactNode</span> }) {
+  <span class="kw">const</span> [<span class="pr">userName</span>, <span class="fn">setName</span>] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [<span class="pr">isLoading</span>, <span class="fn">setIsLoading</span>] = <span class="fn">useState</span>(<span class="kw">true</span>);
+
+  <span class="fn">useEffect</span>(() <span class="op">=&gt;</span> {
+    <span class="pr">AsyncStorage</span>.<span class="fn">getItem</span>(<span class="pr">USER_NAME_KEY</span>).<span class="fn">then</span>((<span class="pr">name</span>) <span class="op">=&gt;</span> {
+      <span class="kw">if</span> (<span class="pr">name</span>) <span class="fn">setName</span>(<span class="pr">name</span>);
+      <span class="fn">setIsLoading</span>(<span class="kw">false</span>);
+    });
+  }, []);
+
+  <span class="kw">const</span> <span class="fn">setUserName</span> = <span class="kw">async</span> (<span class="pr">name</span>: <span class="tp">string</span>) <span class="op">=&gt;</span> {
+    <span class="kw">await</span> <span class="pr">AsyncStorage</span>.<span class="fn">setItem</span>(<span class="pr">USER_NAME_KEY</span>, <span class="pr">name</span>);
+    <span class="fn">setName</span>(<span class="pr">name</span>);
+  };
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;UserContext.Provider</span> <span class="attr">value</span>=<span class="pn">{{</span> <span class="pr">userName</span>, <span class="pr">setUserName</span>, <span class="pr">isLoading</span> <span class="pn">}}</span><span class="tag">&gt;</span>
+      <span class="pn">{</span><span class="pr">children</span><span class="pn">}</span>
+    <span class="tag">&lt;/UserContext.Provider&gt;</span>
+  );
+}
+
+<span class="cm">// Consuming in any screen:</span>
+<span class="kw">const</span> { <span class="pr">userName</span> } = <span class="fn">useUser</span>();</pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p><code>useState</code> for component-level state. <code>useEffect</code> with cleanup functions for timers and subscriptions. <code>useRef</code> for mutable values that should not trigger re-renders. <code>Context</code> for data that many components need (like user identity), paired with <code>AsyncStorage</code> for persistence.</p>
+  </div>
+
+  <div class="quiz" data-quiz="state">
+    <div class="quiz-title">Quick Check</div>
+    <div class="quiz-question">Why does the DashboardScreen use <code>hasAnimated = useRef(false)</code> instead of <code>useState(false)</code>?</div>
+    <div class="quiz-options">
+      <button class="quiz-option" onclick="checkQuiz(this, false)">useRef is faster than useState</button>
+      <button class="quiz-option" onclick="checkQuiz(this, true)">Changing a ref does not trigger a re-render, which would restart animations</button>
+      <button class="quiz-option" onclick="checkQuiz(this, false)">useState cannot store boolean values</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 6: FIREBASE ==================== -->
+<section class="section" id="firebase">
+  <div class="section-number">Section 06</div>
+  <h2>Working with Firebase</h2>
+
+  <h3>Firestore CRUD Operations</h3>
+  <p>Ductivity uses Firestore for persisting activity logs. The service layer abstracts all database operations behind clean async functions.</p>
+
+  <h4>Creating a Document</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">services/activityService.ts -- logActivity</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export async function</span> <span class="fn">logActivity</span>(
+  <span class="pr">activityName</span>: <span class="tp">string</span>,
+  <span class="pr">category</span>: <span class="tp">CategoryType</span>
+): <span class="tp">Promise</span>&lt;<span class="tp">string</span>&gt; {
+  <span class="fn">clearCache</span>(); <span class="cm">// Invalidate cached dashboard queries</span>
+  <span class="kw">const</span> <span class="pr">docRef</span> = <span class="kw">await</span> <span class="fn">addDoc</span>(<span class="fn">collection</span>(<span class="pr">db</span>, <span class="pr">COLLECTION_NAME</span>), {
+    <span class="pr">userId</span>: <span class="pr">USER_ID</span>,
+    <span class="pr">activity</span>: <span class="pr">activityName</span>,
+    <span class="pr">category</span>,
+    <span class="pr">timestamp</span>: <span class="fn">Timestamp</span>.<span class="fn">now</span>(),
+  });
+  <span class="kw">return</span> <span class="pr">docRef</span>.<span class="pr">id</span>;
+}</pre>
+  </div>
+
+  <h4>Deleting a Document (Undo)</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">services/activityService.ts -- deleteActivity</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export async function</span> <span class="fn">deleteActivity</span>(<span class="pr">docId</span>: <span class="tp">string</span>): <span class="tp">Promise</span>&lt;<span class="tp">void</span>&gt; {
+  <span class="fn">clearCache</span>();
+  <span class="kw">await</span> <span class="fn">deleteDoc</span>(<span class="fn">doc</span>(<span class="pr">db</span>, <span class="pr">COLLECTION_NAME</span>, <span class="pr">docId</span>));
+}</pre>
+  </div>
+
+  <h4>Querying with Time Filters</h4>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">services/activityService.ts -- getActivities</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export async function</span> <span class="fn">getActivities</span>(<span class="pr">filter</span>: <span class="tp">TimeFilter</span>): <span class="tp">Promise</span>&lt;<span class="tp">ActivityLog</span>[]&gt; {
+  <span class="kw">const</span> <span class="pr">cacheKey</span> = <span class="str">`activities_${filter}`</span>;
+  <span class="kw">const</span> <span class="pr">cached</span> = <span class="fn">getCached</span>&lt;<span class="tp">ActivityLog</span>[]&gt;(<span class="pr">cacheKey</span>);
+  <span class="kw">if</span> (<span class="pr">cached</span>) <span class="kw">return</span> <span class="pr">cached</span>;
+
+  <span class="kw">const</span> <span class="pr">startDate</span> = <span class="fn">getFilterStartDate</span>(<span class="pr">filter</span>);
+  <span class="kw">const</span> <span class="pr">q</span> = <span class="fn">query</span>(
+    <span class="fn">collection</span>(<span class="pr">db</span>, <span class="pr">COLLECTION_NAME</span>),
+    <span class="fn">where</span>(<span class="str">'userId'</span>, <span class="str">'=='</span>, <span class="pr">USER_ID</span>),
+    <span class="fn">where</span>(<span class="str">'timestamp'</span>, <span class="str">'>='</span>, <span class="fn">Timestamp</span>.<span class="fn">fromDate</span>(<span class="pr">startDate</span>)),
+    <span class="fn">orderBy</span>(<span class="str">'timestamp'</span>, <span class="str">'desc'</span>)
+  );
+
+  <span class="kw">const</span> <span class="pr">snapshot</span> = <span class="kw">await</span> <span class="fn">getDocs</span>(<span class="pr">q</span>);
+  <span class="kw">const</span> <span class="pr">results</span> = <span class="pr">snapshot</span>.<span class="pr">docs</span>.<span class="fn">map</span>((<span class="pr">doc</span>) <span class="op">=&gt;</span> ({
+    <span class="pr">id</span>: <span class="pr">doc</span>.<span class="pr">id</span>,
+    <span class="pr">activity</span>: <span class="pr">doc</span>.<span class="fn">data</span>().<span class="pr">activity</span>,
+    <span class="pr">category</span>: <span class="pr">doc</span>.<span class="fn">data</span>().<span class="pr">category</span>,
+    <span class="pr">timestamp</span>: <span class="pr">doc</span>.<span class="fn">data</span>().<span class="pr">timestamp</span>.<span class="fn">toDate</span>(),
+  }));
+
+  <span class="fn">setCache</span>(<span class="pr">cacheKey</span>, <span class="pr">results</span>);
+  <span class="kw">return</span> <span class="pr">results</span>;
+}</pre>
+  </div>
+
+  <h3>Data Model</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">types/index.ts -- ActivityLog Interface</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export interface</span> <span class="tp">ActivityLog</span> {
+  <span class="pr">id</span>?: <span class="tp">string</span>;        <span class="cm">// Firestore document ID</span>
+  <span class="pr">userId</span>: <span class="tp">string</span>;
+  <span class="pr">activity</span>: <span class="tp">string</span>;
+  <span class="pr">category</span>: <span class="tp">CategoryType</span>;
+  <span class="pr">timestamp</span>: <span class="tp">Date</span>;
+}</pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Keep database calls in a service layer (not in components). Always invalidate caches after writes. Use Firestore compound queries with <code>where()</code> and <code>orderBy()</code> for filtered reads. Return document IDs from create operations to enable undo.</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 7: ANIMATIONS ==================== -->
+<section class="section" id="animations">
+  <div class="section-number">Section 07</div>
+  <h2>Animations</h2>
+
+  <h3>Why Built-in Animated API?</h3>
+  <p>React Native has two animation libraries: the built-in <code>Animated</code> API and <code>react-native-reanimated</code>. Ductivity uses the built-in one because Reanimated requires a native module that is not available in Expo Go.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Expo Go Constraint</div>
+    <p>If you test with Expo Go, stick to the built-in <code>Animated</code> API. If you use a dev build (EAS), Reanimated is available and offers 60fps animations on the UI thread.</p>
+  </div>
+
+  <h3>AnimatedButton -- Spring Scale</h3>
+  <p>This reusable component gives every button a satisfying press animation with optional haptic feedback:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">utils/animations.tsx -- AnimatedButton</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export function</span> <span class="fn">AnimatedButton</span>({
+  <span class="pr">children</span>, <span class="pr">style</span>, <span class="pr">scaleValue</span> = <span class="num">0.95</span>, <span class="pr">enableHaptic</span> = <span class="kw">true</span>, <span class="pr">onPress</span>, ...<span class="pr">rest</span>
+}: <span class="tp">AnimatedButtonProps</span>) {
+  <span class="kw">const</span> <span class="pr">scale</span> = <span class="fn">useRef</span>(<span class="kw">new</span> <span class="fn">Animated.Value</span>(<span class="num">1</span>)).<span class="pr">current</span>;
+
+  <span class="kw">const</span> <span class="fn">onPressIn</span> = () <span class="op">=&gt;</span> {
+    <span class="fn">Animated</span>.<span class="fn">spring</span>(<span class="pr">scale</span>, {
+      <span class="attr">toValue</span>: <span class="pr">scaleValue</span>,
+      <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+    }).<span class="fn">start</span>();
+    <span class="kw">if</span> (<span class="pr">enableHaptic</span>) <span class="fn">hapticLight</span>();
+  };
+
+  <span class="kw">const</span> <span class="fn">onPressOut</span> = () <span class="op">=&gt;</span> {
+    <span class="fn">Animated</span>.<span class="fn">spring</span>(<span class="pr">scale</span>, {
+      <span class="attr">toValue</span>: <span class="num">1</span>,
+      <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+    }).<span class="fn">start</span>();
+  };
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;Pressable</span> <span class="attr">onPressIn</span>=<span class="pn">{</span><span class="fn">onPressIn</span><span class="pn">}</span> <span class="attr">onPressOut</span>=<span class="pn">{</span><span class="fn">onPressOut</span><span class="pn">}</span><span class="tag">&gt;</span>
+      <span class="tag">&lt;Animated.View</span> <span class="attr">style</span>=<span class="pn">{[{</span> <span class="attr">transform</span>: [{ <span class="attr">scale</span> }] <span class="pn">}</span>, <span class="pr">style</span>]<span class="pn">}</span><span class="tag">&gt;</span>
+        <span class="pn">{</span><span class="pr">children</span><span class="pn">}</span>
+      <span class="tag">&lt;/Animated.View&gt;</span>
+    <span class="tag">&lt;/Pressable&gt;</span>
+  );
+}</pre>
+  </div>
+
+  <h3>useFadeInUp -- Reusable Entrance Hook</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">utils/animations.tsx -- useFadeInUp</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export function</span> <span class="fn">useFadeInUp</span>(<span class="pr">delay</span>: <span class="tp">number</span> = <span class="num">0</span>) {
+  <span class="kw">const</span> <span class="pr">opacity</span> = <span class="fn">useRef</span>(<span class="kw">new</span> <span class="fn">Animated.Value</span>(<span class="num">0</span>)).<span class="pr">current</span>;
+  <span class="kw">const</span> <span class="pr">translateY</span> = <span class="fn">useRef</span>(<span class="kw">new</span> <span class="fn">Animated.Value</span>(<span class="num">20</span>)).<span class="pr">current</span>;
+
+  <span class="kw">const</span> <span class="fn">animate</span> = () <span class="op">=&gt;</span> {
+    <span class="fn">Animated</span>.<span class="fn">parallel</span>([
+      <span class="fn">Animated</span>.<span class="fn">timing</span>(<span class="pr">opacity</span>, {
+        <span class="attr">toValue</span>: <span class="num">1</span>, <span class="attr">duration</span>: <span class="num">500</span>, <span class="attr">delay</span>,
+        <span class="attr">easing</span>: <span class="fn">Easing</span>.<span class="fn">out</span>(<span class="fn">Easing</span>.<span class="pr">cubic</span>),
+        <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+      }),
+      <span class="fn">Animated</span>.<span class="fn">timing</span>(<span class="pr">translateY</span>, {
+        <span class="attr">toValue</span>: <span class="num">0</span>, <span class="attr">duration</span>: <span class="num">500</span>, <span class="attr">delay</span>,
+        <span class="attr">easing</span>: <span class="fn">Easing</span>.<span class="fn">out</span>(<span class="fn">Easing</span>.<span class="pr">cubic</span>),
+        <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+      }),
+    ]).<span class="fn">start</span>();
+  };
+
+  <span class="kw">return</span> { <span class="pr">style</span>: { <span class="pr">opacity</span>, <span class="attr">transform</span>: [{ <span class="pr">translateY</span> }] }, <span class="pr">animate</span> };
+}</pre>
+  </div>
+
+  <h3>Toast Slide-In Animation</h3>
+  <p>The Toast component combines spring and timing animations for a polished entrance:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">components/Toast.tsx -- Animation</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// Slide in with spring + fade</span>
+<span class="fn">Animated</span>.<span class="fn">parallel</span>([
+  <span class="fn">Animated</span>.<span class="fn">spring</span>(<span class="pr">translateY</span>, {
+    <span class="attr">toValue</span>: <span class="num">0</span>, <span class="attr">damping</span>: <span class="num">14</span>, <span class="attr">stiffness</span>: <span class="num">120</span>,
+    <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+  }),
+  <span class="fn">Animated</span>.<span class="fn">timing</span>(<span class="pr">opacity</span>, {
+    <span class="attr">toValue</span>: <span class="num">1</span>, <span class="attr">duration</span>: <span class="num">300</span>,
+    <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+  }),
+  <span class="fn">Animated</span>.<span class="fn">spring</span>(<span class="pr">scale</span>, {
+    <span class="attr">toValue</span>: <span class="num">1</span>, <span class="attr">damping</span>: <span class="num">12</span>, <span class="attr">stiffness</span>: <span class="num">100</span>,
+    <span class="attr">useNativeDriver</span>: <span class="kw">true</span>,
+  }),
+]).<span class="fn">start</span>();
+
+<span class="cm">// Auto-hide after 4 seconds</span>
+<span class="pr">timerRef</span>.<span class="pr">current</span> = <span class="fn">setTimeout</span>(() <span class="op">=&gt;</span> <span class="fn">hideToast</span>(), <span class="num">4000</span>);</pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Always set <code>useNativeDriver: true</code> for transform and opacity animations -- it runs them on the native thread for smooth 60fps. Use <code>Animated.spring</code> for natural-feeling interactions and <code>Animated.timing</code> for precise control. Animate once on mount, never on every re-render or focus event.</p>
+  </div>
+
+  <div class="quiz" data-quiz="anim">
+    <div class="quiz-title">Quick Check</div>
+    <div class="quiz-question">What does <code>useNativeDriver: true</code> do?</div>
+    <div class="quiz-options">
+      <button class="quiz-option" onclick="checkQuiz(this, false)">Makes animations work only on iOS</button>
+      <button class="quiz-option" onclick="checkQuiz(this, true)">Runs animations on the native UI thread instead of the JS thread</button>
+      <button class="quiz-option" onclick="checkQuiz(this, false)">Enables GPU acceleration for all properties</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+</section>
+
+<!-- ==================== SECTION 8: NOTIFICATIONS ==================== -->
+<section class="section" id="notifications">
+  <div class="section-number">Section 08</div>
+  <h2>Push Notifications</h2>
+
+  <h3>Expo Notifications Setup</h3>
+  <p>Ductivity uses <code>expo-notifications</code> for local push notifications that remind users to log their activities. The service gracefully degrades when running in Expo Go.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">services/notificationService.ts -- Registration</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export async function</span> <span class="fn">registerForPushNotifications</span>(): <span class="tp">Promise</span>&lt;<span class="tp">boolean</span>&gt; {
+  <span class="kw">if</span> (<span class="pr">isExpoGo</span>) {
+    <span class="pr">console</span>.<span class="fn">log</span>(<span class="str">'Push notifications not available in Expo Go.'</span>);
+    <span class="kw">return false</span>;
+  }
+  <span class="kw">if</span> (!<span class="pr">Device</span>.<span class="pr">isDevice</span>) {
+    <span class="pr">console</span>.<span class="fn">log</span>(<span class="str">'Push notifications require a physical device.'</span>);
+    <span class="kw">return false</span>;
+  }
+
+  <span class="kw">const</span> { <span class="pr">status</span> } = <span class="kw">await</span> <span class="fn">Notifications</span>.<span class="fn">getPermissionsAsync</span>();
+  <span class="kw">let</span> <span class="pr">finalStatus</span> = <span class="pr">status</span>;
+
+  <span class="kw">if</span> (<span class="pr">status</span> !== <span class="str">'granted'</span>) {
+    <span class="kw">const</span> { <span class="pr">status</span>: <span class="pr">newStatus</span> } = <span class="kw">await</span> <span class="fn">Notifications</span>.<span class="fn">requestPermissionsAsync</span>();
+    <span class="pr">finalStatus</span> = <span class="pr">newStatus</span>;
+  }
+
+  <span class="cm">// Android requires an explicit notification channel</span>
+  <span class="kw">if</span> (<span class="pr">Platform</span>.<span class="pr">OS</span> === <span class="str">'android'</span>) {
+    <span class="kw">await</span> <span class="fn">Notifications</span>.<span class="fn">setNotificationChannelAsync</span>(<span class="str">'activity-reminder'</span>, {
+      <span class="pr">name</span>: <span class="str">'Activity Reminder'</span>,
+      <span class="pr">importance</span>: <span class="fn">Notifications</span>.<span class="pr">AndroidImportance</span>.<span class="pr">HIGH</span>,
+    });
+  }
+  <span class="kw">return</span> <span class="pr">finalStatus</span> === <span class="str">'granted'</span>;
+}</pre>
+  </div>
+
+  <h3>Scheduling Local Notifications</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">services/notificationService.ts -- Scheduling</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">export async function</span> <span class="fn">scheduleActivityReminder</span>(): <span class="tp">Promise</span>&lt;<span class="tp">void</span>&gt; {
+  <span class="kw">if</span> (<span class="pr">isExpoGo</span>) <span class="kw">return</span>;
+
+  <span class="kw">await</span> <span class="fn">Notifications</span>.<span class="fn">cancelAllScheduledNotificationsAsync</span>();
+
+  <span class="kw">const</span> <span class="pr">settings</span> = <span class="kw">await</span> <span class="fn">getSettings</span>();
+  <span class="kw">const</span> <span class="pr">intervalMs</span> = <span class="fn">getFrequencySeconds</span>(<span class="pr">settings</span>.<span class="pr">notificationFrequency</span>) * <span class="num">1000</span>;
+  <span class="kw">const</span> <span class="pr">totalMs</span> = <span class="pr">NOTIFICATION_WINDOW_HOURS</span> * <span class="num">60</span> * <span class="num">60</span> * <span class="num">1000</span>;
+
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="pr">offset</span> = <span class="pr">intervalMs</span>; <span class="pr">offset</span> &lt;= <span class="pr">totalMs</span>; <span class="pr">offset</span> += <span class="pr">intervalMs</span>) {
+    <span class="kw">const</span> <span class="pr">triggerDate</span> = <span class="kw">new</span> <span class="fn">Date</span>(<span class="fn">Date</span>.<span class="fn">now</span>() + <span class="pr">offset</span>);
+    <span class="kw">if</span> (<span class="fn">isTimeBlocked</span>(<span class="pr">triggerDate</span>, <span class="pr">settings</span>)) <span class="kw">continue</span>;
+
+    <span class="kw">await</span> <span class="fn">Notifications</span>.<span class="fn">scheduleNotificationAsync</span>({
+      <span class="pr">content</span>: {
+        <span class="pr">title</span>: <span class="str">'What are you up to?'</span>,
+        <span class="pr">body</span>: <span class="str">'Tap to log your current activity!'</span>,
+      },
+      <span class="pr">trigger</span>: {
+        <span class="pr">type</span>: <span class="fn">Notifications</span>.<span class="pr">SchedulableTriggerInputTypes</span>.<span class="pr">DATE</span>,
+        <span class="pr">date</span>: <span class="pr">triggerDate</span>,
+      },
+    });
+  }
+}</pre>
+  </div>
+
+  <h3>Handling Foreground Notifications</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">App.tsx -- Notification Listeners</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// Foreground: notification received while app is open</span>
+<span class="fn">Notifications</span>.<span class="fn">addNotificationReceivedListener</span>(() <span class="op">=&gt;</span> {
+  <span class="pr">navigationRef</span>.<span class="pr">current</span>?.<span class="fn">navigate</span>(<span class="str">'Task'</span>);
+  <span class="fn">setNotificationTrigger</span>((<span class="pr">prev</span>) <span class="op">=&gt;</span> <span class="pr">prev</span> + <span class="num">1</span>);
+});
+
+<span class="cm">// Background: user tapped a notification</span>
+<span class="fn">Notifications</span>.<span class="fn">addNotificationResponseReceivedListener</span>(() <span class="op">=&gt;</span> {
+  <span class="pr">navigationRef</span>.<span class="pr">current</span>?.<span class="fn">navigate</span>(<span class="str">'Task'</span>);
+  <span class="fn">setNotificationTrigger</span>((<span class="pr">prev</span>) <span class="op">=&gt;</span> <span class="pr">prev</span> + <span class="num">1</span>);
+});</pre>
+  </div>
+
+  <div class="callout callout-warning">
+    <div class="callout-title">Expo Go Limitation</div>
+    <p>Push notifications do not work in Expo Go. Guard all notification code with <code>if (isExpoGo) return;</code> to prevent crashes. You need a custom development build via <code>eas build</code> to test notifications.</p>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Always check permissions before scheduling. Cancel all existing notifications before re-scheduling to prevent duplicates. Android requires explicit notification channels. Use a context or ref-based counter to communicate notification events across screens.</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 9: TYPESCRIPT ==================== -->
+<section class="section" id="typescript">
+  <div class="section-number">Section 09</div>
+  <h2>TypeScript in React Native</h2>
+
+  <h3>Type Definitions</h3>
+  <p>Ductivity keeps all shared types in <code>types/index.ts</code>, creating a single source of truth for the data model.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">types/index.ts -- Complete Types</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// Union type for productivity categories</span>
+<span class="kw">export type</span> <span class="tp">CategoryType</span> = <span class="str">'productive'</span> | <span class="str">'semi-productive'</span> | <span class="str">'non-productive'</span> | <span class="str">'meh'</span>;
+
+<span class="cm">// Shape of a selectable activity on the Task screen</span>
+<span class="kw">export interface</span> <span class="tp">Activity</span> {
+  <span class="pr">id</span>: <span class="tp">string</span>;
+  <span class="pr">name</span>: <span class="tp">string</span>;
+  <span class="pr">emoji</span>: <span class="tp">string</span>;
+  <span class="pr">category</span>: <span class="tp">CategoryType</span>;
+}
+
+<span class="cm">// A logged activity record stored in Firestore</span>
+<span class="kw">export interface</span> <span class="tp">ActivityLog</span> {
+  <span class="pr">id</span>?: <span class="tp">string</span>;
+  <span class="pr">userId</span>: <span class="tp">string</span>;
+  <span class="pr">activity</span>: <span class="tp">string</span>;
+  <span class="pr">category</span>: <span class="tp">CategoryType</span>;
+  <span class="pr">timestamp</span>: <span class="tp">Date</span>;
+}
+
+<span class="cm">// Time range filters for the Dashboard</span>
+<span class="kw">export type</span> <span class="tp">TimeFilter</span> = <span class="str">'3h'</span> | <span class="str">'6h'</span> | <span class="str">'12h'</span> | <span class="str">'24h'</span> | <span class="str">'daily'</span> | <span class="str">'weekly'</span> | <span class="str">'monthly'</span>;
+
+<span class="cm">// Type-safe color and label lookups</span>
+<span class="kw">export const</span> <span class="pr">CATEGORY_COLORS</span>: <span class="tp">Record</span>&lt;<span class="tp">CategoryType</span>, <span class="tp">string</span>&gt; = {
+  <span class="str">'productive'</span>: <span class="str">'#4CAF50'</span>,
+  <span class="str">'semi-productive'</span>: <span class="str">'#FF9800'</span>,
+  <span class="str">'non-productive'</span>: <span class="str">'#F44336'</span>,
+  <span class="str">'meh'</span>: <span class="str">'#9E9E9E'</span>,
+};</pre>
+  </div>
+
+  <h3>Generic Typing for Navigation</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">App.tsx -- Typed Navigator</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// Define valid route names and their params</span>
+<span class="kw">type</span> <span class="tp">TabParamList</span> = {
+  <span class="pr">Task</span>: <span class="tp">undefined</span>;
+  <span class="pr">Dashboard</span>: <span class="tp">undefined</span>;
+  <span class="pr">Settings</span>: <span class="tp">undefined</span>;
+};
+
+<span class="cm">// Navigator is type-checked: Tab.Screen name must match keys</span>
+<span class="kw">const</span> <span class="pr">Tab</span> = <span class="fn">createBottomTabNavigator</span>&lt;<span class="tp">TabParamList</span>&gt;();
+
+<span class="cm">// Ref is also typed for safe programmatic navigation</span>
+<span class="kw">const</span> <span class="pr">navigationRef</span> = <span class="fn">useRef</span>&lt;<span class="tp">NavigationContainerRef</span>&lt;<span class="tp">TabParamList</span>&gt;&gt;(<span class="kw">null</span>);</pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Define types centrally and import them everywhere. Use union types for finite sets (categories, filters). Use <code>Record&lt;K, V&gt;</code> for type-safe lookup tables. Generic navigation typing catches route name typos at compile time.</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 10: PERFORMANCE ==================== -->
+<section class="section" id="performance">
+  <div class="section-number">Section 10</div>
+  <h2>Performance Optimization</h2>
+
+  <h3>React.memo</h3>
+  <p>Wrap components in <code>React.memo</code> to skip re-renders when props have not changed. Ductivity memoizes the Toast and ActivityCard:</p>
+
+  <div class="tabs-container">
+    <div class="tabs-header">
+      <button class="tab-btn active" onclick="switchTab(this, 'memo-toast')">Toast</button>
+      <button class="tab-btn" onclick="switchTab(this, 'memo-card')">ActivityCard</button>
+    </div>
+    <div class="tab-panel active" id="memo-toast">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">components/Toast.tsx</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">function</span> <span class="fn">Toast</span>({ <span class="pr">visible</span>, <span class="pr">emoji</span>, <span class="pr">activityName</span>, <span class="pr">category</span>, <span class="pr">time</span>, <span class="pr">onHide</span>, <span class="pr">onUndo</span> }: <span class="tp">ToastProps</span>) {
+  <span class="cm">// ... component logic</span>
+}
+
+<span class="cm">// Memoize: only re-render when props actually change</span>
+<span class="kw">export default</span> <span class="fn">React</span>.<span class="fn">memo</span>(<span class="pr">Toast</span>);</pre>
+      </div>
+    </div>
+    <div class="tab-panel" id="memo-card">
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">TaskScreen.tsx -- ActivityCard</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">const</span> <span class="pr">ActivityCard</span> = <span class="fn">React</span>.<span class="fn">memo</span>(({
+  <span class="pr">activity</span>, <span class="pr">isActive</span>, <span class="pr">isLoading</span>, <span class="pr">onPress</span>,
+}: {
+  <span class="pr">activity</span>: <span class="kw">typeof</span> <span class="pr">ACTIVITIES</span>[<span class="num">0</span>];
+  <span class="pr">isActive</span>: <span class="tp">boolean</span>;
+  <span class="pr">isLoading</span>: <span class="tp">boolean</span>;
+  <span class="pr">onPress</span>: () <span class="op">=&gt;</span> <span class="tp">void</span>;
+}) <span class="op">=&gt;</span> (
+  <span class="tag">&lt;TouchableOpacity</span> ...<span class="tag">&gt;</span>
+    <span class="cm">{/* Card content */}</span>
+  <span class="tag">&lt;/TouchableOpacity&gt;</span>
+));</pre>
+      </div>
+    </div>
+  </div>
+
+  <h3>useMemo for Expensive Calculations</h3>
+  <p>The ActivityChart uses <code>useMemo</code> to avoid recomputing chart data on every render:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">components/ActivityChart.tsx -- useMemo</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> {
+  <span class="pr">categoryCounts</span>, <span class="pr">totalLogs</span>,
+  <span class="pr">productivePercent</span>, <span class="pr">sortedActivities</span>,
+} = <span class="fn">useMemo</span>(() <span class="op">=&gt;</span> {
+  <span class="kw">const</span> <span class="pr">catCounts</span> = <span class="pr">logs</span>.<span class="fn">reduce</span>((<span class="pr">acc</span>, <span class="pr">log</span>) <span class="op">=&gt;</span> {
+    <span class="pr">acc</span>[<span class="pr">log</span>.<span class="pr">category</span>] = (<span class="pr">acc</span>[<span class="pr">log</span>.<span class="pr">category</span>] || <span class="num">0</span>) + <span class="num">1</span>;
+    <span class="kw">return</span> <span class="pr">acc</span>;
+  }, {} <span class="kw">as</span> <span class="tp">Record</span>&lt;<span class="tp">CategoryType</span>, <span class="tp">number</span>&gt;);
+
+  <span class="kw">const</span> <span class="pr">total</span> = <span class="pr">logs</span>.<span class="pr">length</span>;
+  <span class="kw">const</span> <span class="pr">prodCount</span> = <span class="pr">logs</span>.<span class="fn">filter</span>(<span class="pr">l</span> <span class="op">=&gt;</span> <span class="pr">l</span>.<span class="pr">category</span> === <span class="str">'productive'</span>).<span class="pr">length</span>;
+  <span class="kw">const</span> <span class="pr">prodPercent</span> = <span class="pr">total</span> > <span class="num">0</span>
+    ? <span class="fn">Math</span>.<span class="fn">round</span>((<span class="pr">prodCount</span> / <span class="pr">total</span>) * <span class="num">100</span>) : <span class="num">0</span>;
+
+  <span class="kw">return</span> { <span class="pr">categoryCounts</span>: <span class="pr">catCounts</span>, <span class="pr">totalLogs</span>: <span class="pr">total</span>, <span class="pr">productivePercent</span>: <span class="pr">prodPercent</span>, ... };
+}, [<span class="pr">logs</span>]);</pre>
+  </div>
+
+  <h3>Query Caching</h3>
+  <p>Ductivity implements a simple TTL-based cache to avoid redundant Firestore reads when users rapidly switch filters:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">services/queryCache.ts</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="kw">const</span> <span class="pr">CACHE_TTL_MS</span> = <span class="num">30_000</span>; <span class="cm">// 30 seconds</span>
+
+<span class="kw">const</span> <span class="pr">cache</span> = <span class="kw">new</span> <span class="fn">Map</span>&lt;<span class="tp">string</span>, <span class="tp">CacheEntry</span>&lt;<span class="tp">any</span>&gt;&gt;();
+
+<span class="kw">export function</span> <span class="fn">getCached</span>&lt;<span class="tp">T</span>&gt;(<span class="pr">key</span>: <span class="tp">string</span>): <span class="tp">T</span> | <span class="tp">null</span> {
+  <span class="kw">const</span> <span class="pr">entry</span> = <span class="pr">cache</span>.<span class="fn">get</span>(<span class="pr">key</span>);
+  <span class="kw">if</span> (!<span class="pr">entry</span>) <span class="kw">return null</span>;
+  <span class="kw">if</span> (<span class="fn">Date</span>.<span class="fn">now</span>() - <span class="pr">entry</span>.<span class="pr">timestamp</span> > <span class="pr">CACHE_TTL_MS</span>) {
+    <span class="pr">cache</span>.<span class="fn">delete</span>(<span class="pr">key</span>);
+    <span class="kw">return null</span>;
+  }
+  <span class="kw">return</span> <span class="pr">entry</span>.<span class="pr">data</span>;
+}
+
+<span class="kw">export function</span> <span class="fn">clearCache</span>(): <span class="tp">void</span> {
+  <span class="pr">cache</span>.<span class="fn">clear</span>(); <span class="cm">// Invalidate after writes</span>
+}</pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Wrap pure components in <code>React.memo</code>. Use <code>useMemo</code> for derived data that is expensive to compute. Cache network responses with a TTL. Use <code>FlatList</code> (not ScrollView + map) for lists, and always provide a stable <code>keyExtractor</code>.</p>
+  </div>
+
+  <div class="fill-blank">
+    <div class="fill-blank-title">Fill in the Blank</div>
+    <p>Complete the memoization pattern:</p>
+    <code>const MemoizedComponent = <input class="blank-input" data-answer="React.memo" placeholder="???">(<span class="pr">MyComponent</span>);</code>
+    <br>
+    <button class="check-blank-btn" onclick="checkBlank(this)">Check Answer</button>
+  </div>
+</section>
+
+<!-- ==================== SECTION 11: DEPLOY ==================== -->
+<section class="section" id="deploy">
+  <div class="section-number">Section 11</div>
+  <h2>Building &amp; Deploying</h2>
+
+  <h3>EAS Build Configuration</h3>
+  <p>Expo Application Services (EAS) handles building production APKs and AABs. Configure it in <code>eas.json</code>:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">eas.json -- Build Profiles</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre>{
+  <span class="str">"build"</span>: {
+    <span class="str">"preview"</span>: {
+      <span class="str">"android"</span>: {
+        <span class="str">"buildType"</span>: <span class="str">"apk"</span>
+      }
+    },
+    <span class="str">"production"</span>: {
+      <span class="str">"android"</span>: {
+        <span class="str">"buildType"</span>: <span class="str">"app-bundle"</span>
+      }
+    }
+  }
+}</pre>
+  </div>
+
+  <h3>APK vs AAB</h3>
+  <ul>
+    <li><strong>APK</strong> (Android Package) -- Direct install on devices, good for testing and sideloading</li>
+    <li><strong>AAB</strong> (Android App Bundle) -- Required for Google Play Store submission, Google generates optimized APKs per device</li>
+  </ul>
+
+  <h3>Common Build Commands</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">Terminal</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm"># Install EAS CLI</span>
+npm install -g eas-cli
+
+<span class="cm"># Build a preview APK for testing</span>
+eas build --profile preview --platform android
+
+<span class="cm"># Build for production (AAB for Play Store)</span>
+eas build --profile production --platform android
+
+<span class="cm"># Run on local device via Expo Dev Client</span>
+npx expo start --dev-client</pre>
+  </div>
+
+  <div class="collapsible">
+    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+      <span class="collapsible-title">Common Build Issues &amp; Fixes</span>
+      <span class="collapsible-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-content">
+        <h4>SDK version mismatch</h4>
+        <p>Ensure your <code>expo</code> version in <code>package.json</code> matches the SDK version in <code>app.json</code>. Run <code>npx expo install --fix</code> to auto-resolve.</p>
+        <h4>Native module not found</h4>
+        <p>If you added a library that needs native linking (like <code>react-native-reanimated</code>), you need a development build -- it will not work in Expo Go.</p>
+        <h4>Gradle build failure</h4>
+        <p>Clear the cache with <code>eas build --clear-cache</code>. Check that your Java version matches what the build expects (Java 17 for newer Expo SDKs).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Use EAS Build for both development and production builds. APK for testing, AAB for Play Store. Run <code>npx expo install --fix</code> whenever you upgrade Expo SDK to resolve dependency conflicts.</p>
+  </div>
+</section>
+
+<!-- ==================== SECTION 12: ARCHITECTURE ==================== -->
+<section class="section" id="architecture">
+  <div class="section-number">Section 12</div>
+  <h2>Project Architecture</h2>
+
+  <h3>Layered Architecture</h3>
+  <p>Ductivity follows a clean layered pattern that separates concerns:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">Architecture Overview</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">Screens (UI Layer)</span>
+  <span class="op">|</span>-- TaskScreen, DashboardScreen, SettingsScreen
+  <span class="op">|</span>-- Consume services, render components
+  <span class="op">|</span>
+<span class="cm">Components (Reusable UI)</span>
+  <span class="op">|</span>-- Toast, ActivityChart, SkeletonLoader
+  <span class="op">|</span>-- Pure presentational, receive data via props
+  <span class="op">|</span>
+<span class="cm">Context (Global State)</span>
+  <span class="op">|</span>-- UserContext (username), NotificationContext (trigger counter)
+  <span class="op">|</span>
+<span class="cm">Services (Data Layer)</span>
+  <span class="op">|</span>-- activityService (Firestore CRUD)
+  <span class="op">|</span>-- notificationService (push notifications)
+  <span class="op">|</span>-- settingsService (user preferences)
+  <span class="op">|</span>-- queryCache (in-memory TTL cache)
+  <span class="op">|</span>
+<span class="cm">Config &amp; Types (Shared Foundation)</span>
+  <span class="op">|</span>-- constants.ts (magic numbers)
+  <span class="op">|</span>-- types/index.ts (interfaces, enums)
+  <span class="op">|</span>-- firebase.ts (database init)</pre>
+  </div>
+
+  <h3>Service Layer Pattern</h3>
+  <p>Screens never import Firestore directly. Instead, they call service functions that encapsulate all database logic. This makes it easy to swap backends, add caching, or change data transforms without touching UI code.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">Pattern: Screen calls Service</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// In TaskScreen (UI layer):</span>
+<span class="kw">const</span> <span class="pr">docId</span> = <span class="kw">await</span> <span class="fn">logActivity</span>(<span class="pr">activity</span>.<span class="pr">name</span>, <span class="pr">activity</span>.<span class="pr">category</span>);
+
+<span class="cm">// In activityService (data layer):</span>
+<span class="kw">export async function</span> <span class="fn">logActivity</span>(...) {
+  <span class="fn">clearCache</span>();
+  <span class="kw">const</span> <span class="pr">docRef</span> = <span class="kw">await</span> <span class="fn">addDoc</span>(...);
+  <span class="kw">return</span> <span class="pr">docRef</span>.<span class="pr">id</span>;
+}</pre>
+  </div>
+
+  <h3>Constants Extraction</h3>
+  <p>All magic numbers live in <code>config/constants.ts</code> so they can be adjusted in one place:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">config/constants.ts</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><span class="cm">// Animation durations (ms)</span>
+<span class="kw">export const</span> <span class="pr">SPLASH_DURATION</span> = <span class="num">2500</span>;
+<span class="kw">export const</span> <span class="pr">TOAST_DISPLAY_DURATION</span> = <span class="num">4000</span>;
+<span class="kw">export const</span> <span class="pr">FADE_IN_DURATION</span> = <span class="num">500</span>;
+
+<span class="cm">// Notification</span>
+<span class="kw">export const</span> <span class="pr">NOTIFICATION_WINDOW_HOURS</span> = <span class="num">12</span>;
+<span class="kw">export const</span> <span class="pr">TEST_NOTIFICATION_DELAY_SECONDS</span> = <span class="num">2</span>;
+
+<span class="cm">// Layout</span>
+<span class="kw">export const</span> <span class="pr">TAB_BAR_HEIGHT</span> = <span class="num">90</span>;
+<span class="kw">export const</span> <span class="pr">SCREEN_PADDING</span> = <span class="num">20</span>;
+<span class="kw">export const</span> <span class="pr">CARD_GAP</span> = <span class="num">12</span>;
+
+<span class="cm">// Firestore</span>
+<span class="kw">export const</span> <span class="pr">ACTIVITIES_COLLECTION</span> = <span class="str">'activities'</span>;
+<span class="kw">export const</span> <span class="pr">DEFAULT_USER_ID</span> = <span class="str">'default_user'</span>;</pre>
+  </div>
+
+  <div class="callout callout-takeaway">
+    <div class="callout-title">Key Takeaway</div>
+    <p>Separate concerns into layers: screens for UI, components for reusable widgets, services for data, and config for shared constants. This makes the codebase navigable, testable, and maintainable as it grows.</p>
+  </div>
+
+  <div class="quiz" data-quiz="arch">
+    <div class="quiz-title">Final Quiz</div>
+    <div class="quiz-question">Why should screens NOT import Firestore functions directly?</div>
+    <div class="quiz-options">
+      <button class="quiz-option" onclick="checkQuiz(this, false)">Firestore only works in service files</button>
+      <button class="quiz-option" onclick="checkQuiz(this, true)">It couples UI to the database, making it hard to swap backends or add caching</button>
+      <button class="quiz-option" onclick="checkQuiz(this, false)">React Native does not allow Firestore imports in screen components</button>
+    </div>
+    <div class="quiz-feedback"></div>
+  </div>
+
+  <!-- End Matter -->
+  <div style="text-align: center; padding: 60px 0 20px; border-top: 1px solid var(--border-color); margin-top: 60px;">
+    <p style="font-size: 36px; margin-bottom: 12px;">&#127919;</p>
+    <h2 style="font-size: 24px; margin-bottom: 8px;">You made it!</h2>
+    <p>This guide covered 12 core topics of React Native development using real patterns from the Ductivity app. Keep building!</p>
+    <p style="color: var(--text-muted); font-size: 13px; margin-top: 24px;">Built with real code from the Ductivity productivity app.</p>
+  </div>
+</section>
+
+</main>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">&#8593;</button>
+
+<script>
+// ===== Theme Toggle =====
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+  localStorage.setItem('theme', html.getAttribute('data-theme'));
+}
+
+// Load saved theme
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+})();
+
+// ===== Progress Bar =====
+function updateProgress() {
+  const scrollTop = window.scrollY;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  document.getElementById('progress-bar').style.width = progress + '%';
+}
+
+// ===== Back to Top =====
+function updateBackToTop() {
+  const btn = document.getElementById('backToTop');
+  btn.classList.toggle('visible', window.scrollY > 400);
+}
+
+// ===== Active Nav Link =====
+function updateActiveNav() {
+  const sections = document.querySelectorAll('.section');
+  const links = document.querySelectorAll('.nav-link');
+  let current = '';
+
+  sections.forEach(function(section) {
+    const top = section.offsetTop - 100;
+    if (window.scrollY >= top) {
+      current = section.getAttribute('id');
+    }
+  });
+
+  links.forEach(function(link) {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+}
+
+// Combined scroll handler
+window.addEventListener('scroll', function() {
+  updateProgress();
+  updateBackToTop();
+  updateActiveNav();
+});
+
+// ===== Sidebar Toggle (Mobile) =====
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('open');
+}
+
+// Close sidebar when clicking a nav link on mobile
+document.querySelectorAll('.nav-link').forEach(function(link) {
+  link.addEventListener('click', function() {
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('open');
+      document.querySelector('.sidebar-overlay').classList.remove('open');
+    }
+  });
+});
+
+// ===== Copy to Clipboard =====
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent || pre.innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// ===== Tabs =====
+function switchTab(btn, panelId) {
+  const container = btn.closest('.tabs-container');
+  container.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  container.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ===== Collapsible =====
+function toggleCollapsible(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+// ===== Quiz =====
+function checkQuiz(btn, isCorrect) {
+  const quiz = btn.closest('.quiz');
+  const options = quiz.querySelectorAll('.quiz-option');
+  const feedback = quiz.querySelector('.quiz-feedback');
+
+  options.forEach(function(opt) {
+    opt.classList.add('disabled');
+    opt.classList.remove('correct', 'incorrect');
+  });
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    feedback.textContent = 'Correct!';
+    feedback.style.color = '#4CAF50';
+  } else {
+    btn.classList.add('incorrect');
+    options.forEach(function(opt) {
+      // Find the correct one
+      if (opt.getAttribute('onclick') && opt.getAttribute('onclick').indexOf('true') !== -1) {
+        opt.classList.add('correct');
+      }
+    });
+    feedback.textContent = 'Not quite -- the highlighted answer is correct.';
+    feedback.style.color = '#F44336';
+  }
+  feedback.style.display = 'block';
+}
+
+// ===== Fill in the Blank =====
+function checkBlank(btn) {
+  const container = btn.closest('.fill-blank');
+  const inputs = container.querySelectorAll('.blank-input');
+  inputs.forEach(function(input) {
+    const answer = input.getAttribute('data-answer').toLowerCase().trim();
+    const value = input.value.toLowerCase().trim();
+    input.classList.remove('correct', 'incorrect');
+    if (value === answer) {
+      input.classList.add('correct');
+    } else {
+      input.classList.add('incorrect');
+    }
+  });
+}
+</script>
+
+</body>
+</html>

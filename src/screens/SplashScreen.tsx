@@ -10,6 +10,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, StatusBar, Animated, Easing } from 'react-native';
+import GradientBackground from '../components/ui/GradientBackground';
+import IconCircle from '../components/ui/IconCircle';
+import { colors } from '../theme';
 
 interface Props {
   /** Called once the exit fade completes; parent decides next screen. */
@@ -17,10 +20,10 @@ interface Props {
 }
 
 export default function SplashScreen({ onFinish }: Props) {
-  // Logo entrance + pulse
+  // Logo entrance
   const logoScale = useRef(new Animated.Value(0)).current;
-  const logoRotate = useRef(new Animated.Value(-15)).current;
-  const pulseScale = useRef(new Animated.Value(1)).current;
+  // Continuous slow gear rotation (0 → 1 maps to 0° → 360°)
+  const gearSpin = useRef(new Animated.Value(0)).current;
   // Title + subtitle staggered fade-in
   const titleOpacity = useRef(new Animated.Value(0)).current;
   const titleY = useRef(new Animated.Value(20)).current;
@@ -29,21 +32,20 @@ export default function SplashScreen({ onFinish }: Props) {
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // 1. Logo springs in from scale 0 with a small rotation correction
-    Animated.parallel([
-      Animated.spring(logoScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }),
-      Animated.spring(logoRotate, { toValue: 0, damping: 12, stiffness: 100, useNativeDriver: true }),
-    ]).start();
+    // 1. Logo springs in from scale 0
+    Animated.spring(logoScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }).start();
 
-    // 2. After the logo lands, start a gentle breathing pulse loop
+    // 2. Start slow continuous gear rotation after logo lands
     setTimeout(() => {
       Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseScale, { toValue: 1.08, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-          Animated.timing(pulseScale, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        ])
+        Animated.timing(gearSpin, {
+          toValue: 1,
+          duration: 6000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
       ).start();
-    }, 600);
+    }, 500);
 
     // 3. Title fades in and slides up after 400ms
     Animated.parallel([
@@ -64,69 +66,69 @@ export default function SplashScreen({ onFinish }: Props) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Map the numeric rotation value to a degree string for the transform
-  const rotation = logoRotate.interpolate({
-    inputRange: [-15, 0],
-    outputRange: ['-15deg', '0deg'],
+  // Map 0-1 to 0°-360° for continuous gear rotation
+  const gearRotation = gearSpin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
   });
 
   return (
-    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.content}>
-        <Animated.Text
-          style={[
-            styles.logo,
-            {
+    <GradientBackground>
+      <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.content}>
+          <Animated.View
+            style={{
               transform: [
-                { scale: Animated.multiply(logoScale, pulseScale) },
-                { rotate: rotation },
+                { scale: logoScale },
+                { rotate: gearRotation },
               ],
-            },
-          ]}
-        >
-          🎯
-        </Animated.Text>
-        <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }] }}>
-          <Text style={styles.title}>Ductivity</Text>
-        </Animated.View>
-        <Animated.View style={{ opacity: subtitleOpacity }}>
-          <Text style={styles.subtitle}>Track Your Productivity</Text>
-        </Animated.View>
-      </View>
+            }}
+          >
+            <IconCircle
+              name="cog-outline"
+              size={50}
+              color="#fff"
+              backgroundColor="rgba(233,69,96,0.2)"
+              circleSize={100}
+            />
+          </Animated.View>
+          <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }], marginTop: 20 }}>
+            <Text style={styles.title}>Ductivity</Text>
+          </Animated.View>
+          <Animated.View style={{ opacity: subtitleOpacity }}>
+            <Text style={styles.subtitle}>Track Your Productivity</Text>
+          </Animated.View>
+        </View>
 
-      <Animated.View style={[styles.dots, { opacity: subtitleOpacity }]}>
-        <View style={[styles.dot, { backgroundColor: '#4CAF50' }]} />
-        <View style={[styles.dot, { backgroundColor: '#FF9800' }]} />
-        <View style={[styles.dot, { backgroundColor: '#e94560' }]} />
+        <Animated.View style={[styles.dots, { opacity: subtitleOpacity }]}>
+          <View style={[styles.dot, { backgroundColor: colors.category.productive }]} />
+          <View style={[styles.dot, { backgroundColor: colors.category['semi-productive'] }]} />
+          <View style={[styles.dot, { backgroundColor: colors.accent.primary }]} />
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
     alignItems: 'center',
   },
-  logo: {
-    fontSize: 100,
-    marginBottom: 20,
-  },
   title: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#e94560',
+    color: colors.accent.primary,
     letterSpacing: 2,
   },
   subtitle: {
     fontSize: 16,
-    color: '#a0a0b0',
+    color: colors.text.muted,
     marginTop: 8,
     letterSpacing: 1,
   },

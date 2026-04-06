@@ -15,18 +15,23 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from './src/theme';
 
 import { UserProvider } from './src/context/UserContext';
+import { ActivityProvider } from './src/context/ActivityContext';
 import { hapticLight } from './src/utils/haptics';
 import SplashScreen from './src/screens/SplashScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen';
+import ActivitySetupScreen from './src/screens/ActivitySetupScreen';
 import TaskScreen from './src/screens/TaskScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import AddActivityScreen from './src/screens/AddActivityScreen';
 import {
   registerForPushNotifications,
   scheduleActivityReminder,
@@ -54,6 +59,7 @@ type TabParamList = {
   Task: undefined;
   Dashboard: undefined;
   Settings: undefined;
+  AddActivity: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -61,8 +67,8 @@ const Tab = createBottomTabNavigator<TabParamList>();
 /** True when running inside Expo Go (push notifications disabled). */
 const isExpoGo = Constants.appOwnership === 'expo';
 
-/** The three top-level screens the app can show. */
-type AppScreen = 'splash' | 'welcome' | 'main';
+/** The four top-level screens the app can show. */
+type AppScreen = 'splash' | 'welcome' | 'setup' | 'main';
 
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>('splash');
@@ -101,10 +107,31 @@ export default function App() {
     };
   }, []);
 
-  /** After the splash animation, decide whether to show onboarding or main. */
+  /** After the splash animation, check version and decide next screen. */
   const handleSplashFinish = async () => {
+    // Version-based data reset: clear all user data on new app version
+    const APP_VERSION = '1.0.0'; // Must match app.json version
+    const storedVersion = await AsyncStorage.getItem('@ductivity_appVersion');
+    if (storedVersion !== APP_VERSION) {
+      // New version detected — clear all local data for a fresh start
+      await AsyncStorage.clear();
+      await AsyncStorage.setItem('@ductivity_appVersion', APP_VERSION);
+      setScreen('welcome');
+      return;
+    }
+
     const hasSeenWelcome = await AsyncStorage.getItem('hasSeenWelcome');
-    setScreen(hasSeenWelcome === 'true' ? 'main' : 'welcome');
+    if (hasSeenWelcome !== 'true') {
+      setScreen('welcome');
+      return;
+    }
+    // Check if user has completed activity setup
+    const activities = await AsyncStorage.getItem('@ductivity_activities');
+    if (activities && JSON.parse(activities).length > 0) {
+      setScreen('main');
+    } else {
+      setScreen('setup');
+    }
   };
 
   /** Request permissions, schedule reminders, and fire a test notification. */
@@ -113,7 +140,6 @@ export default function App() {
       const granted = await registerForPushNotifications();
       if (granted) {
         await scheduleActivityReminder();
-        await sendTestNotification();
       }
     } catch (error) {
       console.error('Notification setup error:', error);
@@ -131,34 +157,56 @@ export default function App() {
   if (screen === 'welcome') {
     return (
       <UserProvider>
-        <WelcomeScreen onComplete={() => setScreen('main')} />
+        <WelcomeScreen onComplete={() => setScreen('setup')} />
+      </UserProvider>
+    );
+  }
+
+  if (screen === 'setup') {
+    return (
+      <UserProvider>
+        <ActivityProvider>
+          <ActivitySetupScreen onComplete={() => setScreen('main')} />
+        </ActivityProvider>
       </UserProvider>
     );
   }
 
   return (
     <UserProvider>
+      <ActivityProvider>
       <NotificationContext.Provider value={{ notificationTrigger }}>
         <NavigationContainer ref={navigationRef}>
           <Tab.Navigator
             screenOptions={{
               headerShown: false,
+              tabBarBackground: () => (
+                <LinearGradient
+                  colors={[colors.bg.secondary, colors.bg.primary]}
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+              ),
               tabBarStyle: {
-                backgroundColor: '#0f0f23',
-                borderTopColor: '#16213e',
-                paddingBottom: 30,
-                paddingTop: 10,
-                height: 90,
+                backgroundColor: 'transparent',
+                borderTopColor: colors.border.subtle,
+                paddingBottom: 28,
+                paddingTop: 8,
+                height: 85,
               },
-              tabBarActiveTintColor: '#e94560',
-              tabBarInactiveTintColor: '#a0a0b0',
+              tabBarActiveTintColor: colors.accent.primary,
+              tabBarInactiveTintColor: colors.text.muted,
               tabBarIconStyle: {
-                marginBottom: 2,
+                marginBottom: 0,
               },
               tabBarLabelStyle: {
                 fontSize: 11,
                 fontWeight: '600',
-                marginBottom: 8,
+                marginTop: 2,
+                marginBottom: 0,
+              },
+              tabBarItemStyle: {
+                paddingVertical: 4,
+                flex: 1,
               },
             }}
             screenListeners={{
@@ -170,8 +218,12 @@ export default function App() {
               component={TaskScreen}
               options={{
                 tabBarLabel: 'Log Activity',
-                tabBarIcon: ({ color, size }) => (
-                  <Text style={{ fontSize: size, color }}>🎯</Text>
+                tabBarIcon: ({ focused, color, size }) => (
+                  <Ionicons
+                    name={focused ? 'add-circle' : 'add-circle-outline'}
+                    size={size}
+                    color={color}
+                  />
                 ),
               }}
             />
@@ -180,8 +232,12 @@ export default function App() {
               component={DashboardScreen}
               options={{
                 tabBarLabel: 'Dashboard',
-                tabBarIcon: ({ color, size }) => (
-                  <Text style={{ fontSize: size, color }}>📊</Text>
+                tabBarIcon: ({ focused, color, size }) => (
+                  <Ionicons
+                    name={focused ? 'stats-chart' : 'stats-chart-outline'}
+                    size={size}
+                    color={color}
+                  />
                 ),
               }}
             />
@@ -190,14 +246,27 @@ export default function App() {
               component={SettingsScreen}
               options={{
                 tabBarLabel: 'Settings',
-                tabBarIcon: ({ color, size }) => (
-                  <Text style={{ fontSize: size, color }}>⚙️</Text>
+                tabBarIcon: ({ focused, color, size }) => (
+                  <Ionicons
+                    name={focused ? 'settings' : 'settings-outline'}
+                    size={size}
+                    color={color}
+                  />
                 ),
+              }}
+            />
+            <Tab.Screen
+              name="AddActivity"
+              component={AddActivityScreen}
+              options={{
+                tabBarButton: () => null,
+                tabBarItemStyle: { display: 'none' },
               }}
             />
           </Tab.Navigator>
         </NavigationContainer>
       </NotificationContext.Provider>
+      </ActivityProvider>
     </UserProvider>
   );
 }

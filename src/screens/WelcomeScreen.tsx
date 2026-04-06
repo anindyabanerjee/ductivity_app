@@ -22,9 +22,15 @@ import {
   Easing,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../context/UserContext';
-import { AnimatedButton, FadeInCard } from '../utils/animations';
+import { FadeInCard } from '../utils/animations';
 import { hapticMedium } from '../utils/haptics';
+import GradientBackground from '../components/ui/GradientBackground';
+import GlassCard from '../components/ui/GlassCard';
+import GradientButton from '../components/ui/GradientButton';
+import IconCircle from '../components/ui/IconCircle';
+import { colors } from '../theme';
 
 interface Props {
   /** Called after the user completes onboarding; parent switches to main. */
@@ -42,6 +48,7 @@ export default function WelcomeScreen({ onComplete }: Props) {
   // -- Staggered entrance animation values --
   const emojiScale = useRef(new Animated.Value(0)).current;
   const emojiRotate = useRef(new Animated.Value(-20)).current;
+  const gearSpin = useRef(new Animated.Value(0)).current;
   const welcomeOpacity = useRef(new Animated.Value(0)).current;
   const welcomeY = useRef(new Animated.Value(30)).current;
   const titleOpacity = useRef(new Animated.Value(0)).current;
@@ -60,11 +67,20 @@ export default function WelcomeScreen({ onComplete }: Props) {
   useEffect(() => {
     const easeOut = Easing.out(Easing.cubic);
 
-    // Logo springs in with rotation
-    Animated.parallel([
-      Animated.spring(emojiScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }),
-      Animated.spring(emojiRotate, { toValue: 0, damping: 12, stiffness: 80, useNativeDriver: true }),
-    ]).start();
+    // Logo springs in
+    Animated.spring(emojiScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }).start();
+
+    // Start slow continuous gear rotation
+    setTimeout(() => {
+      Animated.loop(
+        Animated.timing(gearSpin, {
+          toValue: 1,
+          duration: 6000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    }, 500);
 
     // Helper: fade in + slide up a given pair of animated values
     const fadeIn = (opacity: Animated.Value, y: Animated.Value, delay: number) => {
@@ -98,118 +114,112 @@ export default function WelcomeScreen({ onComplete }: Props) {
     });
   };
 
-  // Map numeric rotation to a CSS degree string
-  const rotation = emojiRotate.interpolate({
-    inputRange: [-20, 0],
-    outputRange: ['-20deg', '0deg'],
+  // Continuous gear rotation: 0 → 1 maps to 0° → 360°
+  const gearRotation = gearSpin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
   });
 
-  /** Feature bullet points displayed during onboarding. */
-  const featureTexts = [
-    '📊 Visual productivity charts',
-    '🔔 Smart 30-min reminders',
-    '📈 Daily, weekly & monthly views',
-    '🏷️ Categorized activities',
-  ];
+  const featureItems: { icon: any; text: string }[] = [];
 
   return (
-    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
-      <StatusBar barStyle="light-content" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+    <GradientBackground>
+      <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
+        <StatusBar barStyle="light-content" />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View style={styles.content}>
-            <Animated.Text
-              style={[styles.emoji, { transform: [{ scale: emojiScale }, { rotate: rotation }] }]}
-            >
-              🎯
-            </Animated.Text>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.content}>
+              <Animated.View
+                style={{ transform: [{ scale: emojiScale }, { rotate: gearRotation }] }}
+              >
+                <IconCircle
+                  name="cog-outline"
+                  size={50}
+                  color="#fff"
+                  backgroundColor="rgba(233,69,96,0.2)"
+                  circleSize={100}
+                />
+              </Animated.View>
 
-            <Animated.View style={{ opacity: welcomeOpacity, transform: [{ translateY: welcomeY }] }}>
-              <Text style={styles.welcome}>Welcome</Text>
-            </Animated.View>
+              <Animated.View style={{ opacity: welcomeOpacity, transform: [{ translateY: welcomeY }], marginTop: 16 }}>
+                <Text style={styles.welcome}>Welcome to</Text>
+              </Animated.View>
 
-            <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }] }}>
-              <Text style={styles.title}>Ductivity</Text>
-            </Animated.View>
+              <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }] }}>
+                <Text style={styles.title}>Ductivity</Text>
+              </Animated.View>
 
-            <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
-              <Text style={styles.subtitle}>Track Your Productivity</Text>
-            </Animated.View>
+              <Animated.View style={{ opacity: subtitleOpacity, transform: [{ translateY: subtitleY }] }}>
+                <Text style={styles.subtitle}>Track Your Productivity</Text>
+              </Animated.View>
 
-            <Animated.View style={{ opacity: descOpacity, transform: [{ translateY: descY }] }}>
-              <Text style={styles.description}>
-                Log your activities every 30 minutes and see how productively you spend your time.
-              </Text>
-            </Animated.View>
 
-            <View style={styles.features}>
-              {featureTexts.map((text, index) => (
-                <FadeInCard key={index} delay={700 + index * 80}>
-                  <Text style={styles.featureItem}>{text}</Text>
-                </FadeInCard>
-              ))}
+              <View style={styles.features}>
+                {featureItems.map((item, index) => (
+                  <FadeInCard key={index} delay={700 + index * 80}>
+                    <GlassCard style={{ marginBottom: 0 }}>
+                      <View style={styles.featureRow}>
+                        <Ionicons name={item.icon} size={18} color={colors.accent.primary} />
+                        <Text style={styles.featureItem}>{item.text}</Text>
+                      </View>
+                    </GlassCard>
+                  </FadeInCard>
+                ))}
+              </View>
+
+              <Animated.View style={[styles.inputContainer, { opacity: inputOpacity, transform: [{ translateY: inputY }] }]}>
+                <TextInput
+                  style={[styles.textInput, isFocused && styles.textInputFocused]}
+                  placeholder="Enter your name to get started"
+                  placeholderTextColor={colors.text.dim}
+                  value={name}
+                  onChangeText={setName}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  autoCapitalize="words"
+                  returnKeyType="done"
+                />
+              </Animated.View>
             </View>
 
-            <Animated.View style={[styles.inputContainer, { opacity: inputOpacity, transform: [{ translateY: inputY }] }]}>
-              <Text style={styles.inputLabel}>What's your name?</Text>
-              <TextInput
-                style={[styles.textInput, isFocused && styles.textInputFocused]}
-                placeholder="Enter your name..."
-                placeholderTextColor="#666"
-                value={name}
-                onChangeText={setName}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                autoCapitalize="words"
-                returnKeyType="done"
-              />
+            <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonY }] }}>
+              <GradientButton
+                onPress={handleGetStarted}
+                disabled={!isValid}
+              >
+                Continue
+              </GradientButton>
             </Animated.View>
-          </View>
-
-          <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonY }] }}>
-            <AnimatedButton
-              style={[styles.button, !isValid && styles.buttonDisabled]}
-              onPress={handleGetStarted}
-              scaleValue={0.96}
-              enableHaptic={false}
-            >
-              <Text style={styles.buttonText}>
-                {isValid ? `Let's Go, ${name.trim()}!` : 'Enter your name to continue'}
-              </Text>
-            </AnimatedButton>
-          </Animated.View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Animated.View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Animated.View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  container: { flex: 1 },
   scrollContent: {
     flexGrow: 1, justifyContent: 'space-between',
     padding: 30, paddingTop: 70, paddingBottom: 50,
   },
   content: { alignItems: 'center' },
-  emoji: { fontSize: 70, marginBottom: 16 },
-  welcome: { fontSize: 22, color: '#a0a0b0', fontWeight: '300', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 4 },
-  title: { fontSize: 42, fontWeight: 'bold', color: '#e94560', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#a0a0b0', marginBottom: 20 },
-  description: { fontSize: 15, color: '#c0c0d0', textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  welcome: { fontSize: 22, color: colors.text.muted, fontWeight: '300', letterSpacing: 4, textTransform: 'uppercase', marginBottom: 4 },
+  title: { fontSize: 42, fontWeight: 'bold', color: colors.accent.primary, marginBottom: 8 },
+  subtitle: { fontSize: 16, color: colors.text.muted, marginBottom: 20 },
+  description: { fontSize: 15, color: colors.text.secondary, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   features: { alignSelf: 'stretch', gap: 10, marginBottom: 28 },
-  featureItem: { fontSize: 15, color: '#d0d0e0', paddingVertical: 10, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, overflow: 'hidden' },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  featureItem: { fontSize: 15, color: colors.text.secondary },
   inputContainer: { alignSelf: 'stretch', marginBottom: 8 },
-  inputLabel: { fontSize: 14, color: '#a0a0b0', marginBottom: 8, marginLeft: 4 },
-  textInput: { backgroundColor: '#16213e', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 14, fontSize: 16, color: '#fff', borderWidth: 2, borderColor: 'transparent' },
-  textInputFocused: { borderColor: '#e94560' },
-  button: { backgroundColor: '#e94560', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  buttonDisabled: { backgroundColor: '#e9456050' },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  inputLabel: { fontSize: 14, color: colors.text.muted, marginBottom: 8, marginLeft: 4 },
+  textInput: { backgroundColor: colors.bg.secondary, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 14, fontSize: 16, color: colors.text.primary, borderWidth: 2, borderColor: 'transparent' },
+  textInputFocused: { borderColor: colors.accent.primary },
 });

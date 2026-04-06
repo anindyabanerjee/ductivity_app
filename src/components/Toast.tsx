@@ -8,7 +8,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Text, StyleSheet, Animated, Easing, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { CATEGORY_COLORS, CategoryType } from '../types';
+import { colors } from '../theme';
 
 interface ToastProps {
   visible: boolean;
@@ -78,11 +80,13 @@ function Toast({ visible, emoji, activityName, category, time, onHide, onUndo }:
         {
           opacity,
           transform: [{ translateY }, { scale }],
-          borderLeftColor: accentColor,
+          shadowColor: accentColor,
+          shadowOpacity: 0.35,
+          shadowRadius: 12,
         },
       ]}
     >
-      <Text style={styles.emoji}>{emoji}</Text>
+      <Ionicons name="checkmark-circle" size={28} color={accentColor} />
       <View style={styles.textContainer}>
         <Text style={styles.title}>Activity Logged!</Text>
         <Text style={styles.activity}>{activityName}</Text>
@@ -94,6 +98,7 @@ function Toast({ visible, emoji, activityName, category, time, onHide, onUndo }:
         </View>
         {onUndo && (
           <TouchableOpacity style={styles.undoButton} onPress={handleUndo} activeOpacity={0.7}>
+            <Ionicons name="arrow-undo-outline" size={14} color={colors.text.primary} style={{ marginRight: 4 }} />
             <Text style={styles.undoText}>Undo</Text>
           </TouchableOpacity>
         )}
@@ -110,9 +115,10 @@ const styles = StyleSheet.create({
     top: 50,
     left: 20,
     right: 20,
-    backgroundColor: '#16213e',
+    backgroundColor: colors.bg.secondary,
     borderRadius: 16,
-    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: colors.border.subtle,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -124,26 +130,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
   },
-  emoji: {
-    fontSize: 32,
-  },
   textContainer: {
     flex: 1,
   },
   title: {
     fontSize: 12,
-    color: '#a0a0b0',
+    color: colors.text.muted,
     fontWeight: '500',
     marginBottom: 2,
   },
   activity: {
     fontSize: 16,
-    color: '#fff',
+    color: colors.text.primary,
     fontWeight: 'bold',
   },
   time: {
     fontSize: 10,
-    color: '#666',
+    color: colors.text.dim,
     marginTop: 2,
   },
   rightSection: {
@@ -161,13 +164,17 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   undoButton: {
-    backgroundColor: '#e94560',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent.muted,
+    borderWidth: 1,
+    borderColor: colors.accent.primary,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 10,
   },
   undoText: {
-    color: '#fff',
+    color: colors.text.primary,
     fontSize: 12,
     fontWeight: 'bold',
   },

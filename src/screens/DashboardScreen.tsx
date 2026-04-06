@@ -18,6 +18,8 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getActivities } from '../services/activityService';
 import { ActivityLog, TimeFilter } from '../types';
 import ActivityChart, { ChartType } from '../components/ActivityChart';
@@ -25,6 +27,8 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import { useUser } from '../context/UserContext';
 import { AnimatedButton, useFadeInUp } from '../utils/animations';
 import WordOfTheDay from '../components/WordOfTheDay';
+import GradientBackground from '../components/ui/GradientBackground';
+import { colors } from '../theme';
 
 /** Available time-range filter chips. */
 const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
@@ -37,12 +41,20 @@ const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
   { label: 'Month', value: 'monthly' },
 ];
 
+/** Icon mapping for chart type buttons. */
+const chartTypeIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
+  pie: 'pie-chart-outline',
+  bar: 'bar-chart-outline',
+  timeline: 'time-outline',
+  progress: 'battery-half-outline',
+};
+
 /** Available chart-type selector buttons. */
 const CHART_TYPES: { label: string; icon: string; value: ChartType }[] = [
-  { label: 'Pie', icon: '🥧', value: 'pie' },
-  { label: 'Bar', icon: '📊', value: 'bar' },
-  { label: 'Timeline', icon: '🕐', value: 'timeline' },
-  { label: 'Progress', icon: '🔋', value: 'progress' },
+  { label: 'Pie', icon: 'pie', value: 'pie' },
+  { label: 'Bar', icon: 'bar', value: 'bar' },
+  { label: 'Timeline', icon: 'timeline', value: 'timeline' },
+  { label: 'Progress', icon: 'progress', value: 'progress' },
 ];
 
 export default function DashboardScreen() {
@@ -106,7 +118,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <GradientBackground style={{ paddingTop: 60 }}>
       <StatusBar barStyle="light-content" />
       <Animated.View style={[styles.headerContainer, header.style]}>
         <Text style={styles.header}>
@@ -119,18 +131,30 @@ export default function DashboardScreen() {
 
       <Animated.View style={{ opacity: filterOpacity, transform: [{ translateX: filterX }] }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer} contentContainerStyle={styles.filterContent}>
-          {TIME_FILTERS.map((filter) => (
-            <AnimatedButton
-              key={filter.value}
-              style={[styles.filterButton, activeFilter === filter.value && styles.activeFilter]}
-              onPress={() => setActiveFilter(filter.value)}
-              scaleValue={0.92}
-            >
-              <Text style={[styles.filterText, activeFilter === filter.value && styles.activeFilterText]}>
-                {filter.label}
-              </Text>
-            </AnimatedButton>
-          ))}
+          {TIME_FILTERS.map((filter) => {
+            const isActive = activeFilter === filter.value;
+            return (
+              <AnimatedButton
+                key={filter.value}
+                style={[styles.filterButton, isActive && styles.activeFilterOuter]}
+                onPress={() => setActiveFilter(filter.value)}
+                scaleValue={0.92}
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={[colors.accent.primary, '#C13B52']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.activeFilterGradient}
+                  >
+                    <Text style={styles.activeFilterText}>{filter.label}</Text>
+                  </LinearGradient>
+                ) : (
+                  <Text style={styles.filterText}>{filter.label}</Text>
+                )}
+              </AnimatedButton>
+            );
+          })}
         </ScrollView>
       </Animated.View>
 
@@ -143,7 +167,11 @@ export default function DashboardScreen() {
               onPress={() => setActiveChart(type.value)}
               scaleValue={0.92}
             >
-              <Text style={styles.chartTypeIcon}>{type.icon}</Text>
+              <Ionicons
+                name={chartTypeIcons[type.icon]}
+                size={16}
+                color={activeChart === type.value ? colors.accent.primary : colors.text.muted}
+              />
               <Text style={[styles.chartTypeText, activeChart === type.value && styles.activeChartTypeText]}>
                 {type.label}
               </Text>
@@ -155,7 +183,7 @@ export default function DashboardScreen() {
       <ScrollView
         style={styles.chartsContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#e94560" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent.primary} />}
       >
         {loading ? (
           <View style={styles.skeletonContainer}>
@@ -169,27 +197,26 @@ export default function DashboardScreen() {
         <WordOfTheDay />
         <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a1a2e', paddingTop: 60 },
   headerContainer: { paddingHorizontal: 20 },
-  header: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  subheader: { fontSize: 14, color: '#a0a0b0', paddingHorizontal: 20, marginBottom: 14 },
+  header: { fontSize: 28, fontWeight: 'bold', color: colors.text.primary, marginBottom: 4 },
+  subheader: { fontSize: 14, color: colors.text.muted, paddingHorizontal: 20, marginBottom: 14 },
   filterContainer: { maxHeight: 44, marginBottom: 10 },
   filterContent: { paddingHorizontal: 20, gap: 8 },
-  filterButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#16213e' },
-  activeFilter: { backgroundColor: '#e94560' },
-  filterText: { color: '#a0a0b0', fontSize: 13, fontWeight: '600' },
-  activeFilterText: { color: '#fff' },
+  filterButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.bg.secondary, overflow: 'hidden' },
+  activeFilterOuter: { paddingHorizontal: 0, paddingVertical: 0, backgroundColor: 'transparent' },
+  activeFilterGradient: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  filterText: { color: colors.text.muted, fontSize: 13, fontWeight: '600' },
+  activeFilterText: { color: colors.text.primary, fontSize: 13, fontWeight: '600' },
   chartSliderContainer: { maxHeight: 50, marginBottom: 14 },
-  chartTypeButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#16213e', borderWidth: 1, borderColor: 'transparent' },
-  activeChartType: { backgroundColor: '#1a2a4e', borderColor: '#e94560' },
-  chartTypeIcon: { fontSize: 16 },
-  chartTypeText: { color: '#a0a0b0', fontSize: 13, fontWeight: '600' },
-  activeChartTypeText: { color: '#e94560' },
+  chartTypeButton: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.bg.secondary, borderWidth: 1, borderColor: 'transparent' },
+  activeChartType: { backgroundColor: colors.bg.tertiary, borderColor: colors.accent.primary },
+  chartTypeText: { color: colors.text.muted, fontSize: 13, fontWeight: '600' },
+  activeChartTypeText: { color: colors.accent.primary },
   chartsContainer: { flex: 1, paddingHorizontal: 20 },
   skeletonContainer: { paddingTop: 8 },
 });

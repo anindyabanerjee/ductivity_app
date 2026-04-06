@@ -8,6 +8,10 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import GlassCard from './ui/GlassCard';
+import SectionHeader from './ui/SectionHeader';
+import { colors } from '../theme';
 
 interface WordEntry {
   word: string;
@@ -65,11 +69,14 @@ function WordOfTheDay() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionIcon}>📖</Text>
-        <Text style={styles.sectionTitle}>Word of the Day</Text>
-      </View>
-      <View style={styles.card}>
+      <SectionHeader title="Word of the Day" iconName="book-outline" />
+      <GlassCard>
+        <LinearGradient
+          colors={[colors.accent.primary, 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.topAccent}
+        />
         <View style={styles.wordRow}>
           <Text style={styles.word}>{word.word}</Text>
           <Text style={styles.partOfSpeech}>{word.partOfSpeech}</Text>
@@ -80,7 +87,7 @@ function WordOfTheDay() {
           <Text style={styles.exampleLabel}>Example</Text>
           <Text style={styles.example}>"{word.example}"</Text>
         </View>
-      </View>
+      </GlassCard>
     </View>
   );
 }
@@ -91,26 +98,10 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 20,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  sectionIcon: {
-    fontSize: 18,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  card: {
-    backgroundColor: '#16213e',
-    borderRadius: 12,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#e94560',
+  topAccent: {
+    height: 3,
+    borderRadius: 2,
+    marginBottom: 12,
   },
   wordRow: {
     flexDirection: 'row',
@@ -121,43 +112,43 @@ const styles = StyleSheet.create({
   word: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#e94560',
+    color: colors.accent.primary,
   },
   partOfSpeech: {
     fontSize: 12,
-    color: '#a0a0b0',
+    color: colors.text.muted,
     fontStyle: 'italic',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.border.subtle,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
   },
   pronunciation: {
     fontSize: 13,
-    color: '#666',
+    color: colors.text.dim,
     marginBottom: 10,
   },
   meaning: {
     fontSize: 14,
-    color: '#d0d0e0',
+    color: colors.text.secondary,
     lineHeight: 20,
     marginBottom: 12,
   },
   exampleBox: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: colors.border.subtle,
     borderRadius: 8,
     padding: 10,
   },
   exampleLabel: {
     fontSize: 10,
-    color: '#a0a0b0',
+    color: colors.text.muted,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 4,
   },
   example: {
     fontSize: 13,
-    color: '#c0c0d0',
+    color: colors.text.secondary,
     fontStyle: 'italic',
     lineHeight: 18,
   },

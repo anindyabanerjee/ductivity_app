@@ -8,6 +8,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, ViewStyle } from 'react-native';
+import { colors } from '../theme';
 
 interface Props {
   width: number | string;
@@ -32,7 +33,7 @@ function SkeletonLoader({ width, height, borderRadius = 12, style }: Props) {
   return (
     <Animated.View
       style={[
-        { width: width as any, height, borderRadius, backgroundColor: '#16213e', opacity },
+        { width: width as any, height, borderRadius, backgroundColor: colors.bg.secondary, opacity },
         style,
       ]}
     />

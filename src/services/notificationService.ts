@@ -119,8 +119,8 @@ export async function scheduleActivityReminder(): Promise<void> {
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'What are you up to? 🎯',
-        body: 'Tap to log your current activity!',
+        title: 'Ductivity ⚙️',
+        body: "Tap to log what's keeping you busy",
         data: { screen: 'Task' },
         sound: 'default',
         ...(Platform.OS === 'android' && { channelId: 'activity-reminder' }),

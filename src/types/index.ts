@@ -14,6 +14,7 @@ export interface Activity {
   id: string;
   name: string;
   emoji: string;
+  icon: string;
   category: CategoryType;
 }
 
@@ -31,10 +32,10 @@ export type TimeFilter = '3h' | '6h' | '12h' | '24h' | 'daily' | 'weekly' | 'mon
 
 /** Maps each category to its brand color (used in charts, badges, borders). */
 export const CATEGORY_COLORS: Record<CategoryType, string> = {
-  'productive': '#4CAF50',
-  'semi-productive': '#FF9800',
-  'non-productive': '#F44336',
-  'meh': '#9E9E9E',
+  'productive': '#58D68D',
+  'semi-productive': '#F0B429',
+  'non-productive': '#FF6B6B',
+  'meh': '#8B949E',
 };
 
 /** Human-readable display labels for each category. */
